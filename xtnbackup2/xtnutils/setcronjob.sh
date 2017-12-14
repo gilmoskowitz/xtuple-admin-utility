@@ -1,10 +1,12 @@
 #!/bin/bash
+# Copyright (c) 1999-2017 by OpenMFG LLC, d/b/a xTuple.
+# See www.xtuple.com/CPAL for the full text of the software license.
 
 checkcronjob()
 {
 CRONTASK="${WORKING}/${PROG} -h ${PGHOST} -p ${PGPORT} -d ${CRMACCT} -m null -c ${CRMACCT} ${CRMACCT}"
 
-TASKCHECK=`crontab -l | grep "${CRONTASK}" | wc -l`
+TASKCHECK=$(crontab -l | grep "${CRONTASK}" | wc -l)
 echo "TASKCHECK = $TASKCHECK"
 if [ ${TASKCHECK} > 0 ]; then
 echo "Let's set what time you'd like the backup to run"

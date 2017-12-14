@@ -1,4 +1,6 @@
 # Actions to take when the utility is run
+# Copyright (c) 1999-2017 by OpenMFG LLC, d/b/a xTuple.
+# See www.xtuple.com/CPAL for the full text of the software license.
 ACTIONS=()
 
 # default configurations
@@ -53,7 +55,7 @@ export CONFIG_DIR=$(pwd)/xdruple-server/config
 fi
 
 export TYPE='server'
-export DEPLOYER_NAME=`whoami`
+export DEPLOYER_NAME=$(whoami)
 export TIMEZONE=$(</etc/timezone)
 
 # get rid of these

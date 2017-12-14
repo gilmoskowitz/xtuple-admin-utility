@@ -1,10 +1,12 @@
 #!/bin/bash
+# Copyright (c) 1999-2017 by OpenMFG LLC, d/b/a xTuple.
+# See www.xtuple.com/CPAL for the full text of the software license.
 
-export WORKDIR=`pwd`
-export DEPLOYER_NAME=`whoami`
+export WORKDIR=$(pwd)
+export DEPLOYER_NAME=$(whoami)
 
-WORKDAY=`date "+%m%d%y"`
-WORKDATE=`date "+%m%d%y-%s"`
+WORKDAY=$(date "+%m%d%y")
+WORKDATE=$(date "+%m%d%y-%s")
 
 read_configs() {
 if [[ -f ${WORKDIR}/CreatePackages-${WORKDAY}.config ]]; then
@@ -183,7 +185,7 @@ fi
 
 if type -p "npm" > /dev/null; then
     echo "Found npm, checking version"
-    NPM_VER=`npm -v | grep -q '^2'`
+    NPM_VER=$(npm -v | grep -q '^2')
 
     if [[ -z $NPM_VER ]]; then
 	echo "Need to upgrade npm to 2.x.x"
@@ -222,7 +224,7 @@ cd $WORKDIR
 
 if type -p "npm" > /dev/null; then
     echo "Found npm, checking version"
-    NPM_VER=`npm -v | grep -q '^2'`
+    NPM_VER=$(npm -v | grep -q '^2')
 
     if [[ -z $NPM_VER ]]; then
 	echo "Need to upgrade npm to 2.x.x"
@@ -285,7 +287,7 @@ done
 }
 
 setup_postgresql_cluster() {
-CLUSTERINFO=`pg_lsclusters -h`
+CLUSTERINFO=$(pg_lsclusters -h)
 
 echo "$CLUSTERINFO" | grep -q "5432"
 RET=$?
@@ -309,7 +311,7 @@ sudo bash -c "echo  \"#plv8.start_proc='xt.js_init'\" >> /etc/postgresql/${PGVER
 sudo pg_ctlcluster ${PGVER} xtuple stop --force
 sudo pg_ctlcluster ${PGVER} xtuple start
 
-ALLCLUSTERS=`pg_lsclusters`
+ALLCLUSTERS=$(pg_lsclusters)
 echo "Completed - these are your PostgreSQL clusters:"
 echo "${ALLCLUSTERS}"
 
@@ -495,7 +497,7 @@ if [[ ! -f ${WORKDIR}/${ERP_MWC_TARBALL} ]]; then
     exit 2
 else
 
-ERPTARDIR=`tar -tzf ${ERP_MWC_TARBALL} | head -1 | cut -f1 -d"/"`
+ERPTARDIR=$(tar -tzf ${ERP_MWC_TARBALL} | head -1 | cut -f1 -d"/")
 
 if [ ! -d "/etc/xtuple/${MWC_VERSION}" ]; then
 echo "Directory /etc/xtuple/${MWC_VERSION} DOES NOT exists."
@@ -519,14 +521,14 @@ sudo cp -R ${WORKDIR}/${ERPTARDIR}/etc/init /etc
 sudo cp -R ${WORKDIR}/${ERPTARDIR}/etc/xtuple /etc/xtuple/${MWC_VERSION}/xtupleerp
 sudo chown -R xtuple:xtuple /etc/xtuple
 
-HAS_XTEXT=`psql -At -U admin ${ERP_DATABASE_NAME} -c "SELECT count(*) \
+HAS_XTEXT=$(psql -At -U admin ${ERP_DATABASE_NAME} -c "SELECT count(*) \
             FROM pg_catalog.pg_class c, pg_namespace n \
             WHERE ((n.oid=c.relnamespace) \
 AND nspname in ('xt') \
-AND relname in ('ext'));"`
+AND relname in ('ext'));")
   if [[ $HAS_XTEXT == 1 ]]; then
    echo "${ERP_DATABASE_NAME} Has ext"
-EXT_LOCATIONS=`psql -At -U admin ${ERP_DATABASE_NAME} -c "SELECT ext_location from xt.ext WHERE ext_location NOT IN ('/core-extensions','/private-extensions')"`
+EXT_LOCATIONS=$(psql -At -U admin ${ERP_DATABASE_NAME} -c "SELECT ext_location from xt.ext WHERE ext_location NOT IN ('/core-extensions','/private-extensions')")
 echo "$EXT_LOCATIONS"
 echo "Since xt.ext exists, we can try to preload things that may not exist.  There may be exceptions to doing this."
 psql -U admin -d xtupleerp -f ${WORKDIR}/sql/preload.sql
@@ -849,7 +851,7 @@ echo "/var/www already exists"
 fi
 
 cd $WORKDIR
-XTCTARDIR=`tar -tzf ${XTC_WWW_TARBALL} | head -1 | cut -f1 -d"/"`
+XTCTARDIR=$(tar -tzf ${XTC_WWW_TARBALL} | head -1 | cut -f1 -d"/")
 
 echo "Extracting ${XTC_WWW_TARBALL}"
 tar xf ${XTC_WWW_TARBALL}
@@ -872,11 +874,11 @@ if type -p "ec2metadata" > /dev/null; then
 
 #prefer this if we have it and we're on EC2...
 
-IP=`ec2metadata --public-ipv4`
+IP=$(ec2metadata --public-ipv4)
 
 else
 
-IP=`ip -f inet -o addr show eth0|cut -d\  -f 7 | cut -d/ -f 1`
+IP=$(ip -f inet -o addr show eth0|cut -d\  -f 7 | cut -d/ -f 1)
 
 fi
 

@@ -1,4 +1,6 @@
 #!/bin/bash
+# Copyright (c) 1999-2017 by OpenMFG LLC, d/b/a xTuple.
+# See www.xtuple.com/CPAL for the full text of the software license.
 
 s3chk()
 {
@@ -7,7 +9,7 @@ S3CHK='s3cmd'
 
 for PART in $S3CHK; do
 
-if [ -z `which $PART` ]
+if [ -z $(which $PART) ]
 then
 echo "Cannot find ${PART}! It might be ok."
 fi

@@ -1,6 +1,8 @@
 #!/bin/bash
+# Copyright (c) 1999-2017 by OpenMFG LLC, d/b/a xTuple.
+# See www.xtuple.com/CPAL for the full text of the software license.
 
-DATE=`date +%Y.%m.%d-%H.%M`
+DATE=$(date +%Y.%m.%d-%H.%M)
 source ../logging.sh
 source xdprj.fun
 

@@ -1,6 +1,9 @@
 #!/bin/bash
-WORKDATE=`date "+%m%d%y"`
-BUILD_WORKING=`pwd`
+# Copyright (c) 1999-2017 by OpenMFG LLC, d/b/a xTuple.
+# See www.xtuple.com/CPAL for the full text of the software license.
+
+WORKDATE=$(date "+%m%d%y")
+BUILD_WORKING=$(pwd)
 BUILD_XT_TARGET_NAME=xTupleREST
 P12_KEY_FILE=xTupleCommerce.p12
 
@@ -55,7 +58,7 @@ GITCMD="git clone https://${GITHUB_TOKEN}:x-oauth-basic@github.com/xtuple"
 
 ${GITCMD}/xtuple ${BUILD_XT}
 cd ${BUILD_XT} && git fetch --tags
-BUILD_XT_TAG=$(git describe --tags `git rev-list --tags --max-count=1`)
+BUILD_XT_TAG=$(git describe --tags $(git rev-list --tags --max-count=1))
 cd ${BUILD_XT} && git checkout ${BUILD_XT_TAG}
 
 if [[ -f ${BUILD_XT}/.gitmodules ]]; then
@@ -83,7 +86,7 @@ MWCNAME=xtupleerp
 
 ${GITCMD}/private-extensions ${BUILD_PE}
 cd ${BUILD_PE} && git fetch --tags
-BUILD_PE_TAG=$(git describe --tags `git rev-list --tags --max-count=1`)
+BUILD_PE_TAG=$(git describe --tags $(git rev-list --tags --max-count=1))
 cd ${BUILD_PE} && git checkout ${BUILD_PE_TAG}
 
 if [[ -f ${BUILD_PE}/.gitmodules ]]; then
@@ -105,7 +108,7 @@ fi
 
 ${GITCMD}/enhanced-pricing ${BUILD_EP}
 cd ${BUILD_EP} && git fetch --tags
-BUILD_EP_TAG=$(git describe --tags `git rev-list --tags --max-count=1`)
+BUILD_EP_TAG=$(git describe --tags $(git rev-list --tags --max-count=1))
 cd ${BUILD_EP} && git checkout ${BUILD_EP_TAG}
 
 if [[ -f ${BUILD_EP}/.gitmodules ]]; then
@@ -127,7 +130,7 @@ fi
 
 ${GITCMD}/nodejsshim ${BUILD_NJ}
 cd ${BUILD_NJ} && git fetch --tags
-BUILD_NJ_TAG=$(git describe --tags `git rev-list --tags --max-count=1`)
+BUILD_NJ_TAG=$(git describe --tags $(git rev-list --tags --max-count=1))
 cd ${BUILD_NJ} && git checkout ${BUILD_NJ_TAG}
 
 if [[ -f ${BUILD_NJ}/.gitmodules ]]; then
@@ -149,7 +152,7 @@ fi
 
 ${GITCMD}/xdruple-extension ${BUILD_XD}
 cd ${BUILD_XD} && git fetch --tags
-BUILD_XD_TAG=$(git describe --tags `git rev-list --tags --max-count=1`)
+BUILD_XD_TAG=$(git describe --tags $(git rev-list --tags --max-count=1))
 cd ${BUILD_XD} && git checkout ${BUILD_XD_TAG}
 
 if [[ -f ${BUILD_XD}/.gitmodules ]]; then
@@ -171,7 +174,7 @@ fi
 
 ${GITCMD}/payment-gateways ${BUILD_PG}
 cd ${BUILD_PG} && git fetch --tags
-BUILD_PG_TAG=$(git describe --tags `git rev-list --tags --max-count=1`)
+BUILD_PG_TAG=$(git describe --tags $(git rev-list --tags --max-count=1))
 cd ${BUILD_PG} && git checkout ${BUILD_PG_TAG}
 
 if [[ -f ${BUILD_PG}/.gitmodules ]]; then
@@ -193,7 +196,7 @@ fi
 
 ${GITCMD}/xtdash ${BUILD_DA}
 cd ${BUILD_DA} && git fetch --tags
-BUILD_DA_TAG=$(git describe --tags `git rev-list --tags --max-count=1`)
+BUILD_DA_TAG=$(git describe --tags $(git rev-list --tags --max-count=1))
 cd ${BUILD_DA} && git checkout ${BUILD_DA_TAG}
 
 if [[ -f ${BUILD_DA}/.gitmodules ]]; then
@@ -579,7 +582,7 @@ writeout_config
 
 build_xtau() {
 export ISXTAU=1
-HAS_MWC_CONFIG=`ls -t1 xtau_mwc*.config |  head -n 1`
+HAS_MWC_CONFIG=$(ls -t1 xtau_mwc*.config |  head -n 1)
 
 if [[ -f  ${HAS_MWC_CONFIG} ]]; then
   echo "sourcing ${HAS_MWC_CONFIG}"

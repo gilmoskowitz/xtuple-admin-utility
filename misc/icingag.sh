@@ -1,14 +1,17 @@
 #!/bin/bash
+# Copyright (c) 1999-2017 by OpenMFG LLC, d/b/a xTuple.
+# See www.xtuple.com/CPAL for the full text of the software license.
+
 # Installs Nagios NRPE for Monitor.xtuple.com
 
 #Vars Needed for genconf()
 CUST=ppctest
 #PGPORT=
-WORKDATE=`/bin/date "+%m%d%y_%s"`
+WORKDATE=$(/bin/date "+%m%d%y_%s")
 
 if [[ -z $(which ec2metadata) ]]; then
 DOMAIN=mydomain
-MACHID=`hostname -f`
+MACHID=$(hostname -f)
 DOMAIN=NA
 MACHID=NA
 FQDN=NA
@@ -17,11 +20,11 @@ WANIP=NA
 
 else
 DOMAIN=xtuplecloud.com
-MACHID=`ec2metadata --instance-id`
-PUBNAME=`ec2metadata --public-hostname`
+MACHID=$(ec2metadata --instance-id)
+PUBNAME=$(ec2metadata --public-hostname)
 FQDN=${CUST}.${DOMAIN}
-LANIP=`ec2metadata --local-ipv4`
-WANIP=`ec2metadata --public-ipv4`
+LANIP=$(ec2metadata --local-ipv4)
+WANIP=$(ec2metadata --public-ipv4)
 fi
 
 
@@ -29,7 +32,7 @@ fi
 installpkg()
 {
 pkg=nagios-nrpe-server
-HASNAG=`dpkg --list | grep ${pkg} | wc -l`
+HASNAG=$(dpkg --list | grep ${pkg} | wc -l)
 
 if [ $HASNAG -eq 1 ];
 then
@@ -48,7 +51,7 @@ installcfg()
 {
 NAGETC=/etc/nagios
 CONFIGOUT=nrpe_local.cfg
-WASHERE=`grep command ${NAGETC}/${CONFIGOUT} | wc -l`
+WASHERE=$(grep command ${NAGETC}/${CONFIGOUT} | wc -l)
 
 if [ ${WASHERE} == 0 ];
 then
@@ -81,7 +84,7 @@ service nagios-nrpe-server restart
 
 genconf()
 {
-PGINFO=`pg_lsclusters -h`
+PGINFO=$(pg_lsclusters -h)
 cat << EOF >> ${CUST}_icinga.cfg_${WORKDATE}
 # Date: $WORKDATE
 # $DOMAIN

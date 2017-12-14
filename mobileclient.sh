@@ -1,4 +1,6 @@
 #!/bin/bash
+# Copyright (c) 1999-2017 by OpenMFG LLC, d/b/a xTuple.
+# See www.xtuple.com/CPAL for the full text of the software license.
 
 mwc_menu() {
 
@@ -318,7 +320,7 @@ install_mwc() {
     fi
 
     # assuming etho for now... hostname -I will give any non-local address if we wanted
-    IP=`ip -f inet -o addr show | grep -vw lo | awk '{print $4}' | cut -d/ -f 1`
+    IP=$(ip -f inet -o addr show | grep -vw lo | awk '{print $4}' | cut -d/ -f 1)
     log "All set! You should now be able to log on to this server at https://$IP:$NGINX_PORT with username admin and password admin. Make sure you change your password!"
 
 }

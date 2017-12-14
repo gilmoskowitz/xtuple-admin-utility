@@ -1,4 +1,6 @@
 #!/bin/bash
+# Copyright (c) 1999-2017 by OpenMFG LLC, d/b/a xTuple.
+# See www.xtuple.com/CPAL for the full text of the software license.
 
 openrpt_menu() {
     log "Opened openrpt menu"
@@ -55,7 +57,7 @@ build_openrpt() {
     log_exec git clone -q https://github.com/xtuple/openrpt.git || die "Can't clone openrpt"
     log_exec runasroot apt-get install -qq --force-yes qt4-qmake libqt4-dev libqt4-sql-psql || die "Can't install Qt"
     cd openrpt || die "Can't cd openrpt"
-    OPENRPT_VER=master #TODO: OPENRPT_VER=`latest stable release`
+    OPENRPT_VER=master #TODO: OPENRPT_VER=$(latest stable release)
     log_exec git checkout -q $OPENRPT_VER || die "Can't checkout openrpt"
     log "Starting OpenRPT build (this will take a few minutes)..."
     qmake || die "Can't qmake openrpt"

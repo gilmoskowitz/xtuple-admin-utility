@@ -1,4 +1,6 @@
 #!/bin/bash
+# Copyright (c) 1999-2017 by OpenMFG LLC, d/b/a xTuple.
+# See www.xtuple.com/CPAL for the full text of the software license.
 
 setupxtipinfo()
 {
@@ -38,8 +40,8 @@ if [ -f /usr/local/bin/xt-ip-info.sh ]
  else
 cat << EOF >> /usr/local/bin/xt-ip-info.sh
 #!/bin/bash
-LANIP=\`/sbin/ifconfig | grep "inet addr" | grep -v "127.0.0.1" | awk '{ print \$2 }' | awk -F: '{ print \$2 }'\`
-WANIP=\`curl --connect-timeout 60 --silent -0 http://icanhazip.com\`
+LANIP=\$\(/sbin/ifconfig | grep "inet addr" | grep -v "127.0.0.1" | awk '{ print \$2 }' | awk -F: '{ print \$2 }'\)
+WANIP=\$(\curl --connect-timeout 60 --silent -0 http://icanhazip.com\)
 
 if [ -z "\$LANIP" ]; then
 LANSTAT="Cannot find LAN IP at this time"

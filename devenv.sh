@@ -1,4 +1,6 @@
 #!/bin/bash
+# Copyright (c) 1999-2017 by OpenMFG LLC, d/b/a xTuple.
+# See www.xtuple.com/CPAL for the full text of the software license.
 
 dev_menu() {
     log "Opened development menu"
@@ -68,7 +70,7 @@ build_qt5() {
         return $RET
     fi
 
-    log_exec make -j`nproc`
+    log_exec make -j$(nproc)
     RET=$?
     if [ $RET -ne 0 ]; then
         log "There was an error building Qt. Check the log and correct any issues before trying again."
@@ -104,12 +106,12 @@ build_xtuple() {
     git submodule update --init --recursive
     cd openrpt
     qmake
-    make -j`nproc`
+    make -j$(nproc)
     cd ../csvimp
     qmake
-    make -j`nproc`
+    make -j$(nproc)
     cd ..
     qmake
-    make -j`nproc`
+    make -j$(nproc)
 
 }

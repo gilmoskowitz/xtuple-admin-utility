@@ -1,10 +1,13 @@
 #!/bin/bash
+# Copyright (c) 1999-2017 by OpenMFG LLC, d/b/a xTuple.
+# See www.xtuple.com/CPAL for the full text of the software license.
+
 # Creates OAuth Token for xDruple
 # Need to select a database connection for
 # ERP_DBCONN
 # This creates your keys, installs them.  This also sets up your PHP ENV.
 
-DEPLOYER_NAME=`whoami`
+DEPLOYER_NAME=$(whoami)
 
 source functions/gitvars.fun
 
@@ -194,7 +197,7 @@ echo "In: ${BASH_SOURCE} ${FUNCNAME[0]}"
 
 echo "Select Database to Generate Oauth Token for: "
 
-DATABASELIST=`psql -At -h ${PGHOST} -p ${PGPORT} -U postgres -c "SELECT datname FROM pg_database WHERE datname NOT IN ('postgres','template0','template1') ORDER BY 1;"` 
+DATABASELIST=$(psql -At -h ${PGHOST} -p ${PGPORT} -U postgres -c "SELECT datname FROM pg_database WHERE datname NOT IN ('postgres','template0','template1') ORDER BY 1;") 
 
 select DATABASE in ${DATABASELIST};
 do
@@ -465,11 +468,11 @@ if type "ec2metadata" > /dev/null; then
 
 #prefer this if we have it and we're on EC2...
 
-IP=`ec2metadata --public-ipv4`
+IP=$(ec2metadata --public-ipv4)
 
 else
 
-IP=`ip -f inet -o addr show eth0|cut -d\  -f 7 | cut -d/ -f 1`
+IP=$(ip -f inet -o addr show eth0|cut -d\  -f 7 | cut -d/ -f 1)
 
 fi
 
@@ -517,7 +520,7 @@ cat ${DATABASE}_connection.log
 
 gatherVars() {
 # for i in _ {a..z} {A..Z}; do
-#    for var in `eval echo "\\${!$i@}"`; do
+#    for var in $(eval echo "\\${!$i@}"); do
 #      echo $var
 #      # you can test if $var matches some criteria and put it in the file or ignore
 #   done 

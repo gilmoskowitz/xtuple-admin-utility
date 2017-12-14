@@ -1,8 +1,10 @@
 #!/bin/bash
+# Copyright (c) 1999-2017 by OpenMFG LLC, d/b/a xTuple.
+# See www.xtuple.com/CPAL for the full text of the software license.
 
-DATE=`date +%Y.%m.%d-%H:%M`
+DATE=$(date +%Y.%m.%d-%H:%M)
 export _REV="1.0"
-export WORKDIR=`pwd`
+export WORKDIR=$(pwd)
 export MODE="manual"
 
 #set some defaults
@@ -91,7 +93,7 @@ while getopts ":acd:mip:n:H:D:qhx:t:-:" opt; do
   esac
 done
 
-if [ `uname -m` != "x86_64" ]; then
+if [ $(uname -m) != "x86_64" ]; then
     log "You must run this on a 64bit server only"
     do_exit
 fi
@@ -115,8 +117,8 @@ if [ $RET -ne 0 ]; then
 fi
 
 # check what distro we are running.
-_DISTRO=`lsb_release -i -s`
-_CODENAME=`lsb_release -c -s`
+_DISTRO=$(lsb_release -i -s)
+_CODENAME=$(lsb_release -c -s)
 case "$_DISTRO" in
     "Ubuntu")
         export DISTRO="ubuntu"
@@ -126,7 +128,7 @@ case "$_DISTRO" in
             "utopic") ;;
             "vivid") ;;
             "xenial") ;;
-            *) log "We currently only support Ubuntu 14.04 LTS, 14.10, 15.04, and 16.04 LTS. Current release: `lsb_release -r -s`"
+            *) log "We currently only support Ubuntu 14.04 LTS, 14.10, 15.04, and 16.04 LTS. Current release: $(lsb_release -r -s)"
                do_exit
                ;;
         esac
@@ -137,7 +139,7 @@ case "$_DISTRO" in
         case "$_CODENAME" in
             "wheezy") ;;
             "jessie") ;;
-            *) log "We currently only support Debian 7 and 8 Current release: `lsb_release -r -s`"
+            *) log "We currently only support Debian 7 and 8 Current release: $(lsb_release -r -s)"
                do_exit
                ;;
         esac

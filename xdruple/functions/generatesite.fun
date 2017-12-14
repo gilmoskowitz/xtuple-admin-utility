@@ -1,4 +1,7 @@
 #!/bin/bash
+# Copyright (c) 1999-2017 by OpenMFG LLC, d/b/a xTuple.
+# See www.xtuple.com/CPAL for the full text of the software license.
+
 # Creates OAuth Token for xDruple
 # Need to select a database connection for
 # ERP_DBCONN
@@ -151,7 +154,7 @@ selectdb()
 {
 echo "Select Database to Generate Oauth Token for: "
 
-DATABASELIST=`psql -At -h ${PGHOST} -p ${PGPORT} -U postgres -c "SELECT datname FROM pg_database WHERE datname NOT IN ('postgres','template0','template1') ORDER BY 1;"` 
+DATABASELIST=$(psql -At -h ${PGHOST} -p ${PGPORT} -U postgres -c "SELECT datname FROM pg_database WHERE datname NOT IN ('postgres','template0','template1') ORDER BY 1;") 
 
 select DATABASE in ${DATABASELIST};
 do

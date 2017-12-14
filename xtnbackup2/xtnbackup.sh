@@ -1,4 +1,7 @@
 #!/bin/bash
+# Copyright (c) 1999-2017 by OpenMFG LLC, d/b/a xTuple.
+# See www.xtuple.com/CPAL for the full text of the software license.
+
 exec 3>&1 4>&2
 trap 'exec 2>&4 1>&3' 0 1 2 3
 
@@ -9,14 +12,14 @@ HOMEDIR=$DIR
 cd $DIR
 echo "Working dir is $DIR"
 
-WORKDATE=`/bin/date "+%m%d%y_%s"`
-PLAINDATE=`date`
+WORKDATE=$(/bin/date "+%m%d%y_%s")
+PLAINDATE=$(date)
 
 # Update the clock.
 sudo ntpdate -s ntp.ubuntu.com
 
-PROG=`basename $0`
-HOSTNAME=`hostname`
+PROG=$(basename $0)
+HOSTNAME=$(hostname)
 
 usage() {
   echo "$PROG usage:"
@@ -92,10 +95,10 @@ if [ -e $SETS ]
  then
   echo "${SETS} Exists, reading settings"
 source $SETS
-DUMPVER=`$PGBIN/pg_dump -V | head -1 | cut -d ' ' -f3`
+DUMPVER=$($PGBIN/pg_dump -V | head -1 | cut -d ' ' -f3)
 CN=$CRMACCT
 BACKUPACCT=bak_${CN}
-WORKDATE=`date "+%m%d%Y"`
+WORKDATE=$(date "+%m%d%Y")
 LOGFILE="${LOGDIR}/${PGHOST}_BackupStatus_${CN}_${WORKDATE}.log"
 GLOBALFILE=${CN}_${PGHOST}_globals_${HOSTNAME}_${WORKDATE}.sql
 
@@ -244,7 +247,7 @@ checkcronjob()
 {
 CRONTASK="${WORKING}/${PROG} -h ${PGHOST} -p ${PGPORT} -d ${CRMACCT} -m null -c ${CRMACCT} ${CRMACCT}"
 
-TASKCHECK=`crontab -l | grep "${CRONTASK}" | wc -l`
+TASKCHECK=$(crontab -l | grep "${CRONTASK}" | wc -l)
 
 if [ ${TASKCHECK} = 0 ]; then
 echo "Let's set what time you'd like the backup to run"
@@ -310,12 +313,12 @@ fi
 
 removelog()
 {
-CONVERTDAYS=`expr ${DAYSTOKEEP} \* 1400`
+CONVERTDAYS=$(expr ${DAYSTOKEEP} \* 1400)
 
 REMOVALLOG="${LOGDIR}/removal.log"
 
-REMOVELIST=`find ${ARCHIVEDIR}/*.backup -type f -mmin +${CONVERTDAYS} -exec ls {} \;`
-REMOVELISTSQL=`find ${ARCHIVEDIR}/*.sql -type f -mmin +${CONVERTDAYS} -exec ls {} \;`
+REMOVELIST=$(find ${ARCHIVEDIR}/*.backup -type f -mmin +${CONVERTDAYS} -exec ls {} \;)
+REMOVELISTSQL=$(find ${ARCHIVEDIR}/*.sql -type f -mmin +${CONVERTDAYS} -exec ls {} \;)
 
 
 cat << EOF >> $REMOVALLOG
@@ -347,9 +350,9 @@ backupdb()
 # Loop through database names and back them up.
 # Make list of databases to backup individually.
 #==============
-PGDUMPVER=`pg_dump -V`
+PGDUMPVER=$(pg_dump -V)
 
-STARTJOB=`date +%T`
+STARTJOB=$(date +%T)
 
 cat << EOF >> $LOGFILE
 ======================================
@@ -360,17 +363,17 @@ EOF
 
 # This will backup all databases other than the ones listed i.e. postgres,template0,template1
 
-BACKUPLIST=`echo "SELECT datname as "dbname" FROM pg_catalog.pg_database \
+BACKUPLIST=$(echo "SELECT datname as "dbname" FROM pg_catalog.pg_database \
            WHERE datname NOT IN (${EXCLUDEFROMBACKUP}) ORDER BY 1;" | \
-           $PGBIN/psql -A -t -h $PGHOST -U $PGUSER -p $PGPORT postgres`
+           $PGBIN/psql -A -t -h $PGHOST -U $PGUSER -p $PGPORT postgres)
 
 for DB in $BACKUPLIST ; do
 
 BACKUPFILE=${CN}_${DB}_${HOSTNAME}_${WORKDATE}.backup
 
-STARTDBJOB=`date +%T`
+STARTDBJOB=$(date +%T)
 $PGBIN/pg_dump --host $PGHOST --port $PGPORT --username $PGUSER $DB --format custom --blobs --file ${ARCHIVEDIR}/${BACKUPFILE}
-STOPDBJOB=`date +%T`
+STOPDBJOB=$(date +%T)
 
 cat << EOF >> $LOGFILE
 Database: ${DB}
@@ -416,7 +419,7 @@ fi
 
 mailcustreport()
 {
-MAILPRGM=`which mutt`
+MAILPRGM=$(which mutt)
 if [ -z $MAILPRGM ]; then
 true
 

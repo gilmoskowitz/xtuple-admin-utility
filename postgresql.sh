@@ -1,4 +1,6 @@
 #!/bin/bash
+# Copyright (c) 1999-2017 by OpenMFG LLC, d/b/a xTuple.
+# See www.xtuple.com/CPAL for the full text of the software license.
 
 postgresql_menu() {
 
@@ -143,7 +145,7 @@ list_clusters() {
         return 0
     fi
 
-    msgbox "`sudo pg_lsclusters`"
+    msgbox "$(sudo pg_lsclusters)"
 
 }
 
@@ -299,8 +301,8 @@ provision_cluster() {
         dlf_fast $INIT_URL.md5sum "Downloading init.sql.md5sum. Please Wait." $WORKDIR/init.sql.md5sum
     fi
 
-    VALID=`cat $WORKDIR/init.sql.md5sum | awk '{printf $1}'`
-    CURRENT=`md5sum $WORKDIR/init.sql | awk '{printf $1}'`
+    VALID=$(cat $WORKDIR/init.sql.md5sum | awk '{printf $1}')
+    CURRENT=$(md5sum $WORKDIR/init.sql | awk '{printf $1}')
     if [ "$VALID" != "$CURRENT" ] || [ -z "$VALID" ]; then
         msgbox "There was an error verifying the init.sql that was downloaded. Utility will now exit."
         do_exit
@@ -403,8 +405,8 @@ drop_cluster_menu() {
         return 0
     fi
 
-    VER=`awk  '{print $1}' <<< "$CLUSTER"`
-    NAME=`awk  '{print $2}' <<< "$CLUSTER"`
+    VER=$(awk  '{print $1}' <<< "$CLUSTER")
+    NAME=$(awk  '{print $2}' <<< "$CLUSTER")
 
     if [ -z "$VER" ] || [ -z "$NAME" ]; then
         msgbox "Could not determine database version or name"

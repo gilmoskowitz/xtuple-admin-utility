@@ -1,5 +1,8 @@
+# Copyright (c) 1999-2017 by OpenMFG LLC, d/b/a xTuple.
+# See www.xtuple.com/CPAL for the full text of the software license.
+
 generate_p12() {
-WORKDATE=`date "+%m%d%y"`
+WORKDATE=$(date "+%m%d%y")
 
 # THE P12 KEY OUT NEEDS TO GO IN /var/xtuple/keys/
 NGINX_ECOM_DOMAIN='xTupleCommerce'

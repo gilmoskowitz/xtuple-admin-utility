@@ -1,4 +1,6 @@
 #!/bin/bash
+# Copyright (c) 1999-2017 by OpenMFG LLC, d/b/a xTuple.
+# See www.xtuple.com/CPAL for the full text of the software license.
 
 ssh_setup(){
 log "In: ${BASH_SOURCE} ${FUNCNAME[0]}"
@@ -79,7 +81,7 @@ loadadmin_gitconfig
 
 log "In: ${BASH_SOURCE} ${FUNCNAME[0]}"
 
-#GIT_TOKEN=`git config --get github.token`
+#GIT_TOKEN=$(git config --get github.token)
 #if [[ -z ${GIT_TOKEN} ]]; then
 #echo "You are going to need a GitHub Personal Access Token Configured."
 #echo "Go to https://github.com/settings/tokens/new and get one."
@@ -88,7 +90,7 @@ log "In: ${BASH_SOURCE} ${FUNCNAME[0]}"
 #fi
 
 
-GITHUB_TOKEN=`git config --get github.token`
+GITHUB_TOKEN=$(git config --get github.token)
 if [[ -z ${GITHUB_TOKEN} ]]; then
   
   if (whiptail --title "GitHub Personal Access Token" --yesno "Would you like to setup your GitHub Personal Access Token?" 10 60) then
@@ -108,7 +110,7 @@ if [[ -z ${GITHUB_TOKEN} ]]; then
 
         log "Generating your Github token."
 
-        WORKDATE=`date "+%m%d%Y_%s"`
+        WORKDATE=$(date "+%m%d%Y_%s")
 
         curl https://api.github.com/authorizations --user ${GITHUBNAME}:${GITHUBPASS} --data '{"scopes":["user","read:org","repo","public_repo"],"note":"Added Via xTau '${WORKDATE}'"}' -o GITHUB_TOKEN_${WORKDATE}.log
         GITHUB_TOKEN=$(jq --raw-output '.token | select(length > 0)' GITHUB_TOKEN_${WORKDATE}.log)
@@ -118,7 +120,7 @@ if [[ -z ${GITHUB_TOKEN} ]]; then
             whiptail --backtitle "$( window_title )" --msgbox "Error creating your token. ${OAMSG}" 8 60 3>&1 1>&2 2>&3
             break
             else
-	    GITHUB_TOKEN=`git config --global github.token ${GITHUB_TOKEN}`
+	    GITHUB_TOKEN=$(git config --global github.token ${GITHUB_TOKEN})
             whiptail --backtitle "$( window_title )" --msgbox "Your GitHub Personal Access token is: ${GITHUB_TOKEN}.\n\nMaintain your tokens at:\nhttps://github.com/settings/tokens\n\nToken written to ${HOME}/.gitconfig" 16 60 3>&1 1>&2 2>&3
 
             export GITHUB_TOKEN=${GITHUB_TOKEN}
@@ -133,7 +135,7 @@ else
 
             log "Your GitHub Personal Access token is: ${GITHUB_TOKEN}"
 
-	    GITHUB_TOKEN=`git config --global github.token ${GITHUB_TOKEN}`
+	    GITHUB_TOKEN=$(git config --global github.token ${GITHUB_TOKEN})
             export GITHUB_TOKEN=${GITHUB_TOKEN}
             get_composer_token
 

@@ -1,5 +1,7 @@
 #!/bin/bash
-WORKDIR=`pwd`
+# Copyright (c) 1999-2017 by OpenMFG LLC, d/b/a xTuple.
+# See www.xtuple.com/CPAL for the full text of the software license.
+WORKDIR=$(pwd)
 
 # What version do you want to build?
 # Check: https://github.com/xtuple/qt-client/tags
@@ -17,7 +19,7 @@ PKG_CMD="yum -y install "
 # install packages. lsb_release, /etc/redhat-release, yum, apt, zypper
 
 #if [[ -z IS_SUSE ]]; then
-#PKG_CMD=`zypper -n install`
+#PKG_CMD=$(zypper -n install)
 #fi
 
 ${PKG_CMD} axel bison curl deltarpm flex gcc-c++ git gperf nano perl \
@@ -69,7 +71,7 @@ cd ${QTSRCDIR}
 ./configure -qt-sql-psql -qt-sql-sqlite -qt-zlib -qt-libpng -qt-libjpeg \
     -qt-xcb -nomake examples -skip qtwebengine -opensource -confirm-license
 
-make -j`nproc`
+make -j$(nproc)
 
 make install
 
@@ -85,7 +87,7 @@ bash -c "echo export LD_LIBRARY_PATH=/usr/local/Qt-5.7.1/lib:$LD_LIBRARY_PATH >>
 build_xtuple() {
 
 # TODO: Set a workdate on each run or a git commit?
-WORKDATE=`date +'%m%d%Y-%s'`
+WORKDATE=$(date +'%m%d%Y-%s')
 
 XTWORKDIR=${WORKDIR}/xtuple-${WORKDATE}
 
@@ -116,15 +118,15 @@ git submodule update --init --recursive
 
 cd openrpt
 qmake
-make -j`nproc`
+make -j$(nproc)
 
 cd ../csvimp
 qmake
-make -j`nproc`
+make -j$(nproc)
 
 cd ..
 qmake
-make -j`nproc`
+make -j$(nproc)
 
 }
 

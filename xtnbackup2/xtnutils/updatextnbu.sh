@@ -1,11 +1,13 @@
 #!/bin/bash
+# Copyright (c) 1999-2017 by OpenMFG LLC, d/b/a xTuple.
+# See www.xtuple.com/CPAL for the full text of the software license.
 
 updatextnbu()
 {
 if [[ -z $(which ec2metadata) ]]; then
-MACHID=`hostname -f`
+MACHID=$(hostname -f)
 else
-MACHID=`ec2metadata --instance-id`
+MACHID=$(ec2metadata --instance-id)
 fi
 
 curl -X POST \

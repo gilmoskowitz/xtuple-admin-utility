@@ -1,10 +1,12 @@
 #!/bin/bash
-WORKDIR=`pwd`
+# Copyright (c) 1999-2017 by OpenMFG LLC, d/b/a xTuple.
+# See www.xtuple.com/CPAL for the full text of the software license.
+WORKDIR=$(pwd)
 #source common.sh
 #source logging.sh
 menu_title=Conman
 
-MYIPADDR=`arp $(hostname) | awk -F'[()]' '{print $2}'`
+MYIPADDR=$(arp $(hostname) | awk -F'[()]' '{print $2}')
 
 connectSSH()
 {
@@ -20,14 +22,14 @@ fi
 
 setEC2Data()
 {
-REMOTEEC2DATA=`ssh $CONNECTION ec2metadata`
+REMOTEEC2DATA=$(ssh $CONNECTION ec2metadata)
 }
 
 setPGInfo()
 {
 setEC2Data
-REMOTEIPV4=`ssh $CONNECTION ec2metadata --public-ipv4`
-REMOTEPGINFO=`ssh $CONNECTION pg_lsclusters -h | head -1`
+REMOTEIPV4=$(ssh $CONNECTION ec2metadata --public-ipv4)
+REMOTEPGINFO=$(ssh $CONNECTION pg_lsclusters -h | head -1)
 REMOTEPGVER=$(echo $REMOTEPGINFO | cut -d' ' -f1)
 REMOTEPGCLUSTER=$(echo $REMOTEPGINFO | cut -d' ' -f2)
 REMOTEPGPORT=$(echo $REMOTEPGINFO | cut -d' ' -f3)
@@ -43,7 +45,7 @@ REMOTEPGCONF=${REMOTEPGHOME}/postgresql.conf
 readHbaConf()
 {
 setPGInfo
-PGHBAINFO=`ssh ${CONNECTION} "sudo cat ${REMOTEPGHBA}"`
+PGHBAINFO=$(ssh ${CONNECTION} "sudo cat ${REMOTEPGHBA}")
 msgbox "${PGHBAINFO}"
 
 }
@@ -56,14 +58,14 @@ msgbox "$REMOTEEC2DATA"
 
 getDiskInfo()
 {
-DISKSTAT=`ssh $CONNECTION df -h`
+DISKSTAT=$(ssh $CONNECTION df -h)
 msgbox "${DISKSTAT}"
 }
 
 createPGTunnel()
 {
 setPGInfo
-RANDPORT=`shuf -i 5500-65000 -n 1`
+RANDPORT=$(shuf -i 5500-65000 -n 1)
 SOCKETNAME=${CONNECTION}_ctrl-socket
 ssh -M -S ${SOCKETNAME} -fnNT -L${RANDPORT}:localhost:$REMOTEPGPORT $CONNECTION
 sleep 5
@@ -102,15 +104,15 @@ PGCONN="psql -At -U postgres -h localhost -p ${RANDPORT}"
 msgbox "Created PG Tunnel to ${CONNECTION} on Port ${RANDPORT}"
 
 
-NUMPGUSERS=`$PGCONN postgres -c "SELECT count(*) FROM pg_stat_activity;"`
+NUMPGUSERS=$($PGCONN postgres -c "SELECT count(*) FROM pg_stat_activity;")
 
-TUNDATABASES=`$PGCONN postgres -c "SELECT datname FROM pg_database WHERE datname NOT IN ('postgres','template1','template0') ORDER BY 1 LIMIT 10;"`
+TUNDATABASES=$($PGCONN postgres -c "SELECT datname FROM pg_database WHERE datname NOT IN ('postgres','template1','template0') ORDER BY 1 LIMIT 10;")
 
 for TUNDATABASE in $TUNDATABASES; do
-DBVERS+=`$PGCONN -d $TUNDATABASE -c "SELECT ' ${TUNDATABASE}: Ap: '||fetchmetrictext('Application')||' v'||fetchmetrictext('ServerVersion');"`
+DBVERS+=$($PGCONN -d $TUNDATABASE -c "SELECT ' ${TUNDATABASE}: Ap: '||fetchmetrictext('Application')||' v'||fetchmetrictext('ServerVersion');")
 done
 
-TUNPGTEST=`$PGCONN postgres -c "SELECT now();"`
+TUNPGTEST=$($PGCONN postgres -c "SELECT now();")
 RET=$?
 if [ $RET -ne 0 ]; then
 msgbox "Error connecting to PostgreSQL on $CONNECTION"
@@ -142,7 +144,7 @@ msgbox "Killed Tunnel to ${CONNECTION}"
 
 getClusterInfo()
 {
-VAL=`ssh $CONNECTION psql -U postgres -l`
+VAL=$(ssh $CONNECTION psql -U postgres -l)
 RET=$?
 if [ $RET -ne 0 ]; then
 msgbox "Error Connecting to $CONNECTION"

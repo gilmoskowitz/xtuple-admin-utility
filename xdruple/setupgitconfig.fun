@@ -1,4 +1,7 @@
 #!/bin/bash
+# Copyright (c) 1999-2017 by OpenMFG LLC, d/b/a xTuple.
+# See www.xtuple.com/CPAL for the full text of the software license.
+
 setthevars()
 {
 
@@ -21,7 +24,7 @@ git config --global ${CRMACCT,,}env.fedexaccountnumber YOUR_FEDEX_ACCOUNT
 git config --global ${CRMACCT,,}env.fedexmeternumber YOUR_METER_NUMBER
 
 
-PHPVARSLIST=`git config --global -l | grep ${CRMACCT,,}env | cut -d . -f2`
+PHPVARSLIST=$(git config --global -l | grep ${CRMACCT,,}env | cut -d . -f2)
 
 for PHPVAR in ${PHPVARSLIST}; do
 export ${PHPVAR}

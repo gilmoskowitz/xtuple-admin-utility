@@ -1,4 +1,6 @@
 #!/bin/bash
+# Copyright (c) 1999-2017 by OpenMFG LLC, d/b/a xTuple.
+# See www.xtuple.com/CPAL for the full text of the software license.
 
 do_exit() {
     log "Exiting xTuple Admin Utility"
@@ -51,7 +53,7 @@ msgbox() {
 
 # $1 is the product
 latest_version() {
-    VER=`curl -s http://files.xtuple.org/latest_$1`
+    VER=$(curl -s http://files.xtuple.org/latest_$1)
     echo $VER
 }
 

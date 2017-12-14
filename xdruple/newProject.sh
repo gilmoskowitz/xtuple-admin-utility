@@ -1,4 +1,7 @@
 #!/bin/bash
+# Copyright (c) 1999-2017 by OpenMFG LLC, d/b/a xTuple.
+# See www.xtuple.com/CPAL for the full text of the software license.
+
 # Can run it like...
 # ./newProject.sh CRMACCT true dev 1
 
@@ -42,7 +45,7 @@ if [[ -f ${HOME}/.gitconfig ]]; then
 echo "Configuring Git using settings from ~/.gitconfig"
 fi
 
-GIT_USERNAME=`git config --get github.name`
+GIT_USERNAME=$(git config --get github.name)
 if [[ -z ${GIT_USERNAME} ]]; then
 echo "We did not find a github.name for git config github.name"
 read -p "What is your First and Last Name? " GIT_USERNAME
@@ -50,7 +53,7 @@ git config --global github.name "${GIT_USERNAME}"
 git config --global user.name "${GIT_USERNAME}"
 fi
 
-GIT_EMAIL=`git config --get github.email`
+GIT_EMAIL=$(git config --get github.email)
 if [[ -z ${GIT_EMAIL} ]]; then
 echo "We did not find a github.email for git config user.email"
 read -p "What is your Email? " GIT_EMAIL
@@ -58,7 +61,7 @@ git config --global github.email ${GIT_EMAIL}
 git config --global user.email ${GIT_EMAIL}
 fi
 
-GIT_TOKEN=`git config --get github.token`
+GIT_TOKEN=$(git config --get github.token)
 if [[ -z ${GIT_TOKEN} ]]; then
 echo "You are going to need a GitHub Personal Access Token Configured."
 echo "Go to https://github.com/settings/tokens/new and get one."
@@ -67,7 +70,7 @@ read -p "What is your Token? " GIT_TOKEN
 git config --global github.token ${GIT_TOKEN}
 fi
 
-GIT_ORGNAME=`git config --get github.user`
+GIT_ORGNAME=$(git config --get github.user)
 if [[ -z ${GIT_ORGNAME} ]]; then
 echo "You are going to need to configure your Github Orgname/Username"
 echo "i.e. http://github.com/GIT_ORGNAME"
@@ -160,7 +163,7 @@ RET=$?
 
 
 updatereadme() {
-UPDREADME=`git config --get xtuple.updatereadme`
+UPDREADME=$(git config --get xtuple.updatereadme)
 if [[ ${UPDREADME} ]]; then
 
  if [[ -f ~/.selected_editor ]]; then

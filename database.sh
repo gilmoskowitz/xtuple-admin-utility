@@ -1,4 +1,6 @@
 #!/bin/bash
+# Copyright (c) 1999-2017 by OpenMFG LLC, d/b/a xTuple.
+# See www.xtuple.com/CPAL for the full text of the software license.
 
 database_menu() {
 echo "In: ${BASH_SOURCE} ${FUNCNAME[0]}"
@@ -81,8 +83,8 @@ echo "In: ${BASH_SOURCE} ${FUNCNAME[0]}"
         dlf_fast $MD5_URL "Downloading MD5SUM. Please Wait." "$DEMODEST".md5sum
     fi
 
-    VALID=`cat "$DEMODEST".md5sum | awk '{printf $1}'`
-    CURRENT=`md5sum "$DEMODEST" | awk '{printf $1}'`
+    VALID=$(cat "$DEMODEST".md5sum | awk '{printf $1}')
+    CURRENT=$(md5sum "$DEMODEST" | awk '{printf $1}')
     if [ "$VALID" != "$CURRENT" ]; then
         msgbox "There was an error verifying the downloaded database."
         return 1
@@ -268,7 +270,7 @@ echo "In: ${BASH_SOURCE} ${FUNCNAME[0]}"
 	fi
 
     if [ "$CHOICE" = "EnterFileName..." ]; then
-        DATABASE=$(whiptail --backtitle "$( window_title )" --inputbox "Full Database Pathname" 8 60 `pwd` 3>&1 1>&2 2>&3)
+        DATABASE=$(whiptail --backtitle "$( window_title )" --inputbox "Full Database Pathname" 8 60 $(pwd) 3>&1 1>&2 2>&3)
         RET=$?
         if [ $RET -ne 0 ]; then
             return $RET
@@ -533,13 +535,13 @@ echo "In: ${BASH_SOURCE} ${FUNCNAME[0]}"
 inspect_database() {
 echo "In: ${BASH_SOURCE} ${FUNCNAME[0]}"
 
-    VAL=`psql -At -U $PGUSER -h $PGHOST -p $PGPORT -d $1 -c "SELECT data FROM ( \
+    VAL=$(psql -At -U $PGUSER -h $PGHOST -p $PGPORT -d $1 -c "SELECT data FROM ( \
         SELECT 1,'Co: '||fetchmetrictext('remitto_name') AS data \
         UNION \
         SELECT 2,'Ap: '||fetchmetrictext('Application')||' v'||fetchmetrictext('ServerVersion') \
         UNION \
         SELECT 3,'Pk: '||pkghead_name||' v'||pkghead_version \
-        FROM pkghead) as dummy ORDER BY 1;"`
+        FROM pkghead) as dummy ORDER BY 1;")
 
     msgbox "${VAL}"
 
@@ -577,9 +579,9 @@ echo "In: ${BASH_SOURCE} ${FUNCNAME[0]}"
         check_database_info
     fi
 
-    export PGVER=`awk  '{print $1}' <<< "$CLUSTER"`
-    export POSTNAME=`awk  '{print $2}' <<< "$CLUSTER"`
-    export PGPORT=`awk  '{print $3}' <<< "$CLUSTER"`
+    export PGVER=$(awk  '{print $1}' <<< "$CLUSTER")
+    export POSTNAME=$(awk  '{print $2}' <<< "$CLUSTER")
+    export PGPORT=$(awk  '{print $3}' <<< "$CLUSTER")
     export PGHOST=localhost
     export PGUSER=postgres
 
@@ -786,6 +788,6 @@ echo "In: ${BASH_SOURCE} ${FUNCNAME[0]}"
     install_mwc_menu
 
     # display results
-    NEWVER=`psql -At -U ${PGUSER} -p ${PGPORT} -d $DATABASE -c "SELECT fetchmetrictext('ServerVersion') AS application;"`
+    NEWVER=$(psql -At -U ${PGUSER} -p ${PGPORT} -d $DATABASE -c "SELECT fetchmetrictext('ServerVersion') AS application;")
     msgbox "Database $DATABASE\nVersion $NEWVER"
 }
