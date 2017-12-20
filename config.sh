@@ -1,6 +1,7 @@
 # Actions to take when the utility is run
 # Copyright (c) 1999-2017 by OpenMFG LLC, d/b/a xTuple.
 # See www.xtuple.com/CPAL for the full text of the software license.
+
 ACTIONS=()
 
 # default configurations
@@ -46,12 +47,12 @@ GITHUBPASS=
 
 # Variables for xdruple-server
 if [[ ! -d $(pwd)/xdruple-server ]]; then
-git submodule update --init --recursive
+  git submodule update --init --recursive
 fi
 
 if [[ -d $(pwd)/xdruple-server ]]; then
-export SCRIPTS_DIR=$(pwd)/xdruple-server/scripts
-export CONFIG_DIR=$(pwd)/xdruple-server/config
+  export SCRIPTS_DIR=$(pwd)/xdruple-server/scripts
+  export CONFIG_DIR=$(pwd)/xdruple-server/config
 fi
 
 export TYPE='server'

@@ -20,15 +20,10 @@ sudo chown -R munin:munin /var/lib/munin/.ssh/authorized_keys
 #if nginx installed, then do this.
 
 if type "nginx" > /dev/null; then
-
-   wget https://github.com/perusio/nginx-munin/archive/master.zip
-
-   unzip master.zip
-
-   sudo cp nginx-munin-master/nginx_connection_request nginx_memory /etc/munin/plugins/ -fv
-
-   sudo cp nginx-munin-master/nginx_memory /etc/munin/plugins/ -fv
-
+  wget https://github.com/perusio/nginx-munin/archive/master.zip
+  unzip master.zip
+  sudo cp nginx-munin-master/nginx_connection_request nginx_memory /etc/munin/plugins/ -fv
+  sudo cp nginx-munin-master/nginx_memory /etc/munin/plugins/ -fv
 fi
 
 sudo service munin-node restart

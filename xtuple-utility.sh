@@ -7,16 +7,12 @@ export _REV="1.0"
 export WORKDIR=$(pwd)
 export MODE="manual"
 
-#set some defaults
 source config.sh
-# import supporting scripts
 source common.sh
-source logging.sh
-# make directories
+
 mkdir -p $DATABASEDIR
 mkdir -p $BACKUPDIR
 
-# sets up sudoer.d
 setup_sudo
 
 # process command line arguments
@@ -94,15 +90,14 @@ while getopts ":acd:mip:n:H:D:qhx:t:-:" opt; do
 done
 
 if [ $(uname -m) != "x86_64" ]; then
-    log "You must run this on a 64bit server only"
-    do_exit
+  log "You must run this on a 64bit server only"
+  do_exit
 fi
 
 log "Starting xTuple Admin Utility..."
 
 log "Checking for sudo..."
-if ! which sudo > /dev/null;
-then
+if ! which sudo > /dev/null ; then
   log "Please install sudo and grant yourself access to sudo:"
   log "   # apt-get install sudo"
   log "   # addgroup $USER sudo"
@@ -112,8 +107,8 @@ fi
 test_connection
 RET=$?
 if [ $RET -ne 0 ]; then
-    log "I can't seem to tell if you have internet access or not. Please check that you have internet connectivity and that http://files.xtuple.org is online.  "
-    do_exit
+  log "I can't seem to tell if you have internet access or not. Please check that you have internet connectivity and that http://files.xtuple.org is online.  "
+  do_exit
 fi
 
 # check what distro we are running.
@@ -180,43 +175,43 @@ fi
 
 # if we were given command line options for installation process them now
 if [ $INSTALLALL ]; then
-    log "Executing full provision..."
-    MODE="auto"
+  log "Executing full provision..."
+  MODE="auto"
 
-    DBVERSION="${DBVERSION:-4.10.1}"
-    EDITION="${EDITION:-demo}"
-    DATABASE="${DATABASE:-xtuple}"
-    MWCNAME="${MWCNAME:-xtuple-web}"
-    PGPORT=5432
-    PGUSER=postgres
+  DBVERSION="${DBVERSION:-4.10.1}"
+  EDITION="${EDITION:-demo}"
+  DATABASE="${DATABASE:-xtuple}"
+  MWCNAME="${MWCNAME:-xtuple-web}"
+  PGPORT=5432
+  PGUSER=postgres
 
-    NGINX_HOSTNAME="${NGINX_HOSTNAME:-myhost}"
-    NGINX_DOMAIN="${NGINX_DOMAIN:-mydomain.com}"
+  NGINX_HOSTNAME="${NGINX_HOSTNAME:-myhost}"
+  NGINX_DOMAIN="${NGINX_DOMAIN:-mydomain.com}"
 
-    install_postgresql "$PGVER"
-    #drop_cluster $PGVER main auto
-    provision_cluster "$PGVER" "${POSTNAME:-xtuple}" 5432 "$LANG" "--start-conf=auto"
-    download_database "$DATABASEDIR/$EDITION_$DBVERSION.backup" "$DBVERSION" "$EDITION"
-    restore_database "$DATABASEDIR/$EDITION_$DBVERSION.backup" "$DATABASE"
-    log_exec rm -f "$WORKDIR/tmp.backup{,.md5sum}"
-    install_mwc "$DBVERSION" "v$DBVERSION" "$MWCNAME" false "$DATABASE"
-    install_nginx
-    log_exec sudo mkdir -p /etc/xtuple/$DBVERSION/$MWCNAME/ssl/
-    configure_nginx "$NGINX_HOSTNAME" "$NGINX_DOMAIN" "$MWCNAME" true /etc/xtuple/$DBVERSION/$MWCNAME/ssl/server.{crt,key} 8443
-    setup_webprint
+  install_postgresql "$PGVER"
+  #drop_cluster $PGVER main auto
+  provision_cluster "$PGVER" "${POSTNAME:-xtuple}" 5432 "$LANG" "--start-conf=auto"
+  download_database "$DATABASEDIR/$EDITION_$DBVERSION.backup" "$DBVERSION" "$EDITION"
+  restore_database "$DATABASEDIR/$EDITION_$DBVERSION.backup" "$DATABASE"
+  log_exec rm -f "$WORKDIR/tmp.backup{,.md5sum}"
+  install_mwc "$DBVERSION" "v$DBVERSION" "$MWCNAME" false "$DATABASE"
+  install_nginx
+  log_exec sudo mkdir -p /etc/xtuple/$DBVERSION/$MWCNAME/ssl/
+  configure_nginx "$NGINX_HOSTNAME" "$NGINX_DOMAIN" "$MWCNAME" true /etc/xtuple/$DBVERSION/$MWCNAME/ssl/server.{crt,key} 8443
+  setup_webprint
 fi
 
 # if we're supposed to build Qt, lets do that before anything else because it takes *FOREVER*
 if [ $BUILDQT ]; then
-    log "Building and installing Qt5 from source"
-    install_dev_prereqs
-    build_qt5
+  log "Building and installing Qt5 from source"
+  install_dev_prereqs
+  build_qt5
 fi
 
 # It is okay to run them both, but if either one runs we want to exit after as these
 # are expected to be used headlessly.
 if [ $BUILDQT ] || [ $INSTALLALL ]; then
-    do_exit
+  do_exit
 fi
 
 # we load mainmenu.sh last since it calls its menu once it builds it

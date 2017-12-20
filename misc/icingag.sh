@@ -10,60 +10,53 @@ CUST=ppctest
 WORKDATE=$(/bin/date "+%m%d%y_%s")
 
 if [[ -z $(which ec2metadata) ]]; then
-DOMAIN=mydomain
-MACHID=$(hostname -f)
-DOMAIN=NA
-MACHID=NA
-FQDN=NA
-LANIP=NA
-WANIP=NA
+  DOMAIN=mydomain
+  MACHID=$(hostname -f)
+  DOMAIN=NA
+  MACHID=NA
+  FQDN=NA
+  LANIP=NA
+  WANIP=NA
 
 else
-DOMAIN=xtuplecloud.com
-MACHID=$(ec2metadata --instance-id)
-PUBNAME=$(ec2metadata --public-hostname)
-FQDN=${CUST}.${DOMAIN}
-LANIP=$(ec2metadata --local-ipv4)
-WANIP=$(ec2metadata --public-ipv4)
+  DOMAIN=xtuplecloud.com
+  MACHID=$(ec2metadata --instance-id)
+  PUBNAME=$(ec2metadata --public-hostname)
+  FQDN=${CUST}.${DOMAIN}
+  LANIP=$(ec2metadata --local-ipv4)
+  WANIP=$(ec2metadata --public-ipv4)
 fi
 
+installpkg() {
+  pkg=nagios-nrpe-server
+  HASNAG=$(dpkg --list | grep ${pkg} | wc -l)
 
-
-installpkg()
-{
-pkg=nagios-nrpe-server
-HASNAG=$(dpkg --list | grep ${pkg} | wc -l)
-
-if [ $HASNAG -eq 1 ];
-then
-echo "${pkg} is already installed." 
-else
- if apt-get -qq install ${pkg}; then
-    echo "Successfully installed $pkg"
- else
-    echo "Error installing $pkg"
-    exit 0
- fi
-fi
+  if [ $HASNAG -eq 1 ] ; then
+    echo "${pkg} is already installed." 
+  else
+    if apt-get -qq install ${pkg}; then
+      echo "Successfully installed $pkg"
+    else
+      echo "Error installing $pkg"
+      exit 0
+    fi
+  fi
 }
 
-installcfg()
-{
-NAGETC=/etc/nagios
-CONFIGOUT=nrpe_local.cfg
-WASHERE=$(grep command ${NAGETC}/${CONFIGOUT} | wc -l)
+installcfg() {
+  NAGETC=/etc/nagios
+  CONFIGOUT=nrpe_local.cfg
+  WASHERE=$(grep command ${NAGETC}/${CONFIGOUT} | wc -l)
 
-if [ ${WASHERE} == 0 ];
-then
-MSG="Sending config to ${NAGETC}/${CONFIGOUT}"
+  if [ ${WASHERE} == 0 ]; then
+    MSG="Sending config to ${NAGETC}/${CONFIGOUT}"
+  else
+    CONFIGOUT=nrpe_local.${WORKDATE}
+    MSG="We have a previously modified config. Sending to ${NAGETC}/${CONFIGOUT} for review."
+  fi
 
-else
-CONFIGOUT=nrpe_local.${WORKDATE}
-MSG="We have a previously modified config. Sending to ${NAGETC}/${CONFIGOUT} for review."
-fi
-
-echo $MSG
-cat << EOF >> ${NAGETC}/${CONFIGOUT}
+  echo $MSG
+  cat << EOF >> ${NAGETC}/${CONFIGOUT}
 ### ADDED BY xTuple-Utility
 allowed_hosts=23.21.178.187,127.0.0.1,monitor.xtuple.com
 
@@ -77,15 +70,13 @@ command[check_swap]=/usr/lib/nagios/plugins/check_swap -w 20 -c 10
 EOF
 }
 
-restartnag()
-{
-service nagios-nrpe-server restart
+restartnag() {
+  service nagios-nrpe-server restart
 }
 
-genconf()
-{
-PGINFO=$(pg_lsclusters -h)
-cat << EOF >> ${CUST}_icinga.cfg_${WORKDATE}
+genconf() {
+  PGINFO=$(pg_lsclusters -h)
+  cat << EOF >> ${CUST}_icinga.cfg_${WORKDATE}
 # Date: $WORKDATE
 # $DOMAIN
 # $MACHID
@@ -119,28 +110,28 @@ define service{
         use                             generic-service         ; Name of service template to use
         host_name                       ${CUST}.xtuplecloud.com
         service_description             Total Processes
-	check_command                   check_nrpe_1arg!check_procs
+        check_command                   check_nrpe_1arg!check_procs
        }
 
 define service{
         use                             generic-service         ; Name of service template to use
         host_name                       ${CUST}.xtuplecloud.com 
         service_description             Current Load
-	check_command                   check_nrpe_1arg!check_load
+        check_command                   check_nrpe_1arg!check_load
        }
 
 define service {
-	use 		generic-service
-	host_name	${CUST}.xtuplecloud.com
-	service_description	${CUST}.xtuplecloud.com PostgreSQL Service Database Connections
-	check_command	check_postgres_connections!150!190
+        use 		generic-service
+        host_name	${CUST}.xtuplecloud.com
+        service_description	${CUST}.xtuplecloud.com PostgreSQL Service Database Connections
+        check_command	check_postgres_connections!150!190
 }
 
 define service {
-	use 		generic-service
-	host_name       ${CUST}.xtuplecloud.com
-	service_description	${CUST}.xtuplecloud.com PostgreSQL Service connection 
-	check_command	check_postgres_connection
+        use 		generic-service
+        host_name       ${CUST}.xtuplecloud.com
+        service_description	${CUST}.xtuplecloud.com PostgreSQL Service connection 
+        check_command	check_postgres_connection
 }
 
 define service {

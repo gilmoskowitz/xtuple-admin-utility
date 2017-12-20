@@ -4,7 +4,7 @@
 
 checks3bucket()
 {
-s3cmd mb ${S3BUCKET}
-sleep 10
+  s3cmd mb ${S3BUCKET}
+  sleep 10
 }
 
