@@ -7,6 +7,7 @@
 provision_menu() {
   log "Opened provisioning menu"
 
+  local ACTION
   ACTION=$(whiptail --backtitle "$( window_title )" --menu "Select Action" 0 0 7 --ok-button "Select" --cancel-button "Cancel" \
           "1" "Install non-web-enabled xTuple" \
           "2" "Install web-enabled xTuple" \

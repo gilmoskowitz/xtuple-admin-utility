@@ -2,9 +2,9 @@
 # Copyright (c) 1999-2017 by OpenMFG LLC, d/b/a xTuple.
 # See www.xtuple.com/CPAL for the full text of the software license.
 
-[ -n "$(typeset -F -p log)" ]                   || source ${BUILD_WORKING}/common.sh
+[ -n "$(typeset -F -p log)" ] || source ${BUILD_WORKING:=.}/common.sh
 
-ssh_setup(){
+ssh_setup() {
   log "In: ${BASH_SOURCE} ${FUNCNAME[0]}"
   local SSHCONFIG="
 #Added by xTau
@@ -13,27 +13,23 @@ HostName github.com
 StrictHostKeyChecking no"
 
   # This is added so composer doesn't ask for auth during the process.
-  if [[ -e ~/.ssh/config ]]; then
+  local SSHFILE="$HOME/.ssh/config"
+  local MUSTCREATE=true
+  if [[ -e "$SSHFILE" ]]; then
     log "Found SSH config"
-    SSHFILE=~/.ssh/config
-    declare file=${SSHFILE}
-    declare regex="\s+
-$SSHCONFIG\s+"
+    local file_content=$( cat "${SSHFILE}" )
 
-    declare file_content=$( cat "${file}" )
-    if [[ " $file_content " =~ $regex ]]; then
+    if [[ " $file_content " =~ "$SSHCONFIG" ]]; then
+      MUSTCREATE=false
       log "SSH Config looks good"
-    else
-      echo "$SSHCONFIG" >> ~/.ssh/config
     fi
-  else
-    log "Creating ~/.ssh/config"
-
-    if [ ! -d ~/.ssh  ]; then
-      log_exec sudo mkdir -p ~/.ssh
-    else
-      echo "$SSHCONFIG" >> ~/.ssh/config
+  fi
+  if $MUSTCREATE ; then
+    log "Creating $SSHFILE"
+    if [ ! -d $(dirname $SSHFILE)  ]; then
+      log_exec sudo mkdir -p $(dirname $SSHFILE)
     fi
+    echo "$SSHCONFIG" >> $SSHFILE
   fi
 }
 

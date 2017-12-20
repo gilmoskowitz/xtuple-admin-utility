@@ -87,6 +87,8 @@ build_qt5() {
 }
 
 build_xtuple() {
+  local GITTAG
+
   cd $WORKDIR
   mkdir xtuple
   cd xtuple

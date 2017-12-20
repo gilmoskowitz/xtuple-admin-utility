@@ -8,8 +8,7 @@ menu_title=Conman
 
 MYIPADDR=$(arp $(hostname) | awk -F'[()]' '{print $2}')
 
-connectSSH()
-{
+connectSSH() {
   ssh $CONNECTION
   RET=$?
   if [ $RET -ne 0 ]; then
@@ -19,13 +18,11 @@ connectSSH()
   # selectServer
 }
 
-setEC2Data()
-{
+setEC2Data() {
   REMOTEEC2DATA=$(ssh $CONNECTION ec2metadata)
 }
 
-setPGInfo()
-{
+setPGInfo() {
   setEC2Data
   REMOTEIPV4=$(ssh $CONNECTION ec2metadata --public-ipv4)
   REMOTEPGINFO=$(ssh $CONNECTION pg_lsclusters -h | head -1)
@@ -41,27 +38,23 @@ setPGInfo()
   REMOTEPGCONF=${REMOTEPGHOME}/postgresql.conf
 }
 
-readHbaConf()
-{
+readHbaConf() {
   setPGInfo
   PGHBAINFO=$(ssh ${CONNECTION} "sudo cat ${REMOTEPGHBA}")
   msgbox "${PGHBAINFO}"
 }
 
-getEC2Info()
-{
+getEC2Info() {
   setEC2Data
   msgbox "$REMOTEEC2DATA"
 }
 
-getDiskInfo()
-{
+getDiskInfo() {
   DISKSTAT=$(ssh $CONNECTION df -h)
   msgbox "${DISKSTAT}"
 }
 
-createPGTunnel()
-{
+createPGTunnel() {
   setPGInfo
   RANDPORT=$(shuf -i 5500-65000 -n 1)
   SOCKETNAME=${CONNECTION}_ctrl-socket
@@ -69,13 +62,11 @@ createPGTunnel()
   sleep 5
 }
 
-killPGTunnel()
-{
+killPGTunnel() {
   ssh -S ${SOCKETNAME} -O exit $CONNECTION
 }
 
-createTunnel()
-{
+createTunnel() {
   createPGTunnel
   msgbox "Tunnel to $CONNECTION Created on ${RANDPORT} \n
   Socket: ${WORKDIR}/${SOCKETNAME}\n
@@ -87,8 +78,7 @@ You can close this message box."
   echo "ssh -S ${SOCKETNAME} -O exit ${CONNECTION}" >> cleansockets.sh
 }
 
-getPGInfo()
-{
+getPGInfo() {
   createPGTunnel
 
   PGCONN="psql -At -U postgres -h localhost -p ${RANDPORT}"
@@ -129,10 +119,8 @@ Server: $REMOTEIPV4 Port: $REMOTEPGPORT User: admin Pass: None"
   msgbox "Killed Tunnel to ${CONNECTION}"
 }
 
-
-getClusterInfo()
-{
-  VAL=$(ssh $CONNECTION psql -U postgres -l)
+getClusterInfo() {
+  local VAL=$(ssh $CONNECTION psql -U postgres -l)
   RET=$?
   if [ $RET -ne 0 ]; then
     msgbox "Error Connecting to $CONNECTION"
@@ -142,6 +130,7 @@ getClusterInfo()
 }
 
 conman_menu() {
+  local DBM
   while true; do
     DBM=$(whiptail --backtitle "Viewing $CONNECTION" --menu "Actions on $CONNECTION" 20 80 10 --cancel-button "Cancel" --ok-button "Select" \
           "1" "Connect SSH to $CONNECTION" \
@@ -173,9 +162,7 @@ conman_menu() {
   done
 }
 
-
-selectServer()
-{
+selectServer() {
   CONNECTIONS=()
 
   while read -r line; do

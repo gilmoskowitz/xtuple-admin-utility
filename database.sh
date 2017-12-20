@@ -6,6 +6,7 @@
 
 database_menu() {
   echo "In: ${BASH_SOURCE} ${FUNCNAME[0]}"
+  local DBM
 
   log "Opened database menu"
 
@@ -50,16 +51,16 @@ download_database() {
   echo "In: ${BASH_SOURCE} ${FUNCNAME[0]}"
   local DEMODEST="$1"
   local DBVERSION="$2"
-# $3 is type of database to grab (empty, demo, manufacturing, distribution, masterref)
-# $4 is the database name to restore to
+  DBTYPE="${3:-$DBTYPE}"
+  DBTYPE="${DBTYPE:-demo}"
+
+  local DB_URL="http://files.xtuple.org/$DBVERSION/$DBTYPE.backup"
+  local MD5_URL="http://files.xtuple.org/$DBVERSION/$DBTYPE.backup.md5sum"
 
   if [ -z "$DBVERSION" ]; then
     msgbox "Database version not specified."
     return 1
   fi
-
-  DBTYPE="${3:-$DBTYPE}"
-  DBTYPE="${DBTYPE:-demo}"
 
   if [ -z "$DEMODEST" ] && [ "$MODE" = "manual" ]; then
     DEMODEST=$(whiptail --backtitle "$( window_title )" --inputbox "Enter the filename where you would like to save the database" 8 60 3>&1 1>&2 2>&3)
@@ -71,9 +72,6 @@ download_database() {
     return 127
   fi
 
-  DB_URL="http://files.xtuple.org/$DBVERSION/$DBTYPE.backup"
-  MD5_URL="http://files.xtuple.org/$DBVERSION/$DBTYPE.backup.md5sum"
-
   log "Saving "$DB_URL" as "$DEMODEST"."
   if [ $MODE = "auto" ]; then
     dlf_fast_console $DB_URL "$DEMODEST"
@@ -83,8 +81,8 @@ download_database() {
     dlf_fast $MD5_URL "Downloading MD5SUM. Please Wait." "$DEMODEST".md5sum
   fi
 
-  VALID=$(cat "$DEMODEST".md5sum | awk '{printf $1}')
-  CURRENT=$(md5sum "$DEMODEST" | awk '{printf $1}')
+  local VALID=$(cat "$DEMODEST".md5sum | awk '{printf $1}')
+  local CURRENT=$(md5sum "$DEMODEST" | awk '{printf $1}')
   if [ "$VALID" != "$CURRENT" ]; then
     msgbox "There was an error verifying the downloaded database."
     return 1
@@ -104,7 +102,6 @@ copy_database() {
   fi
 
   get_database_list
-
   if [ -z "$DATABASES" ]; then
     msgbox "No databases detected on this system"
     return 0
@@ -131,7 +128,6 @@ copy_database() {
   fi
 
   log "Copying database "$OLDDATABASE" to "$NEWDATABASE"."
-
   backup_database "$OLDDATABASE-copy.backup" "$OLDDATABASE"
   RET=$?
   if [ $RET -ne 0 ]; then
@@ -163,7 +159,6 @@ backup_database() {
 
   if [ -z "$DATABASE" ]; then
     get_database_list
-
     if [ -z "$DATABASES" ]; then
       msgbox "No databases detected on this system"
       return 0
@@ -207,6 +202,7 @@ backup_database() {
 # This can not be run in automatic mode
 create_database() {
   echo "In: ${BASH_SOURCE} ${FUNCNAME[0]}"
+  local BACKUPDBS CHOICE CUSTOMDB DATABASE DOWNLOADABLEDBS EXISTINGDBS
 
   [ "$MODE" = "auto" ] && return 127
 
@@ -331,7 +327,6 @@ list_databases() {
   [ "$MODE" = "auto" ] && return 127
 
   get_database_list
-
   if [ -z "$DATABASES" ]; then
     msgbox "No databases detected on this system"
     return 0
@@ -351,7 +346,6 @@ drop_database() {
   fi
 
   get_database_list
-
   if [ -z "$DATABASES" ]; then
     msgbox "No databases detected on this system"
     return 0
@@ -395,7 +389,6 @@ rename_database() {
   fi
 
   get_database_list
-
   if [ -z "$DATABASES" ]; then
     msgbox "No databases detected on this system"
     return 0
@@ -445,7 +438,6 @@ inspect_database_menu() {
   fi
 
   get_database_list
-
   if [ -z "$DATABASES" ]; then
     msgbox "No databases detected on this system"
     return 0
@@ -466,7 +458,6 @@ get_database_list() {
   echo "In: ${BASH_SOURCE} ${FUNCNAME[0]}"
 
   check_database_info
-
   DATABASES=()
   while read -r line; do
     DATABASES+=("$line" "$line")
@@ -518,16 +509,17 @@ restore_connect_priv() {
 inspect_database() {
   echo "In: ${BASH_SOURCE} ${FUNCNAME[0]}"
   local DB="$1"
+  local VAL
 
-  VAL=$(psql -At -U $PGUSER -h $PGHOST -p $PGPORT -d $DB -c "SELECT data FROM ( \
-        SELECT 1,'Co: '||fetchmetrictext('remitto_name') AS data \
-        UNION \
-        SELECT 2,'Ap: '||fetchmetrictext('Application')||' v'||fetchmetrictext('ServerVersion') \
-        UNION \
-        SELECT 3,'Pk: '||pkghead_name||' v'||pkghead_version \
+  VAL=$(psql -At -U $PGUSER -h $PGHOST -p $PGPORT -d $DB -c "SELECT data FROM (
+        SELECT 1,'Co: '||fetchmetrictext('remitto_name') AS data
+        UNION
+        SELECT 2,'Ap: '||fetchmetrictext('Application')||' v'||fetchmetrictext('ServerVersion')
+        UNION
+        SELECT 3,'Pk: '||pkghead_name||' v'||pkghead_version
         FROM pkghead) as dummy ORDER BY 1;")
 
-    msgbox "${VAL}"
+  msgbox "${VAL}"
 }
 
 # select a cluster that the functions in this file will use
@@ -538,7 +530,6 @@ set_database_info_select() {
   [ "$MODE" = "auto" ] && return 127
 
   CLUSTERS=()
-
   while read -r line; do 
     CLUSTERS+=("$line" "$line")
   done < <( sudo pg_lsclusters | tail -n +2 )
@@ -676,7 +667,6 @@ upgrade_database() {
   fi
 
   get_database_list
-
   if [ -z "$DATABASES" ]; then
     msgbox "No databases detected on this system"
     return 0

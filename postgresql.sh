@@ -5,9 +5,9 @@
 [ -n "$(typeset -F -p log)" ]                   || source ${BUILD_WORKING}/common.sh
 
 postgresql_menu() {
-
   log "Opened PostgreSQL menu"
 
+  local PGM
   while true; do
     PGM=$(whiptail --backtitle "$( window_title )" --menu "$( menu_title PostgreSQL\ Menu )" 0 0 9 --cancel-button "Cancel" --ok-button "Select" \
         "1" "Install PostgreSQL $PGVER" \
@@ -36,12 +36,12 @@ postgresql_menu() {
       esac
     fi
   done
-
 }
 
 password_menu() {
   log "Opened password menu"
 
+  local PGM
   while true; do
     PGM=$(whiptail --backtitle "$( window_title )" --menu "$( menu_title Reset\ Password\ Menu )" 0 0 7 --cancel-button "Cancel" --ok-button "Select" \
         "1" "Reset postgres via sudo postgres" \
@@ -94,7 +94,7 @@ install_postgresql() {
 # we don't remove -client because we still need it for managment tasks
 remove_postgresql() {
   PGVER="${1:-$PGVER}"
-  if (whiptail --title "Are you sure?" --yesno "Uninstall PostgreSQL $PGVER? Cluster data will be left behind." --yes-button "Yes" --no-button "No" 10 60) then
+  if (whiptail --title "Are you sure?" --yesno "Uninstall PostgreSQL $PGVER? Cluster data will be left behind." --yes-button "Yes" --no-button "No" 10 60) ; then
     log "Uninstalling PostgreSQL "$PGVER"..."
     log_exec sudo apt-get -y remove postgresql-$PGVER postgresql-contrib-$PGVER postgresql-$PGVER-plv8 postgresql-server-dev-$PGVER
     RET=$?
@@ -107,7 +107,7 @@ remove_postgresql() {
 # we don't remove -client because we still need it for managment tasks
 purge_postgresql() {
   PGVER="${1:-$PGVER}"
-  if (whiptail --title "Are you sure?" --yesno "Completely remove PostgreSQL $PGVER and all of the cluster data?" --yes-button "Yes" --no-button "No" 10 60) then
+  if (whiptail --title "Are you sure?" --yesno "Completely remove PostgreSQL $PGVER and all of the cluster data?" --yes-button "Yes" --no-button "No" 10 60) ; then
     log "Purging PostgreSQL "$PGVER"..."
     log_exec sudo apt-get -y purge postgresql-$PGVER postgresql-contrib-$PGVER postgresql-$PGVER-plv8
     RET=$?
@@ -198,7 +198,6 @@ provision_cluster() {
   fi
 
   log "Creating database cluster $POSTNAME using version $PGVER on port $PGPORT encoded with $POSTLOCALE"
-### PERRY
   log_exec sudo bash -c "su - root -c \"pg_createcluster --locale $POSTLOCALE -p $PGPORT --start $POSTSTART $PGVER $POSTNAME -o listen_addresses='*' -o log_line_prefix='%t %d %u ' -- --auth=trust --auth-host=trust --auth-local=trust\""
   RET=$?
   if [ $RET -ne 0 ]; then
@@ -310,10 +309,8 @@ select_cluster() {
   set_database_info_select
 }
 
-# $3 is mode (auto/manual)
-# prompt if not provided
 drop_cluster() {
-
+# MODE can be either `auto` or `manual`
   PGVER="${1:-$PGVER}"
   POSTAME="${2:-$POSTNAME}"
   MODE="${3:-$MODE}"
@@ -370,7 +367,7 @@ drop_cluster_menu() {
     return 0
   fi
 
-  CLUSTER=$(whiptail --title "PostgreSQL Clusters" --menu "Select cluster to drop" 16 120 5 "${CLUSTERS[@]}" --notags 3>&1 1>&2 2>&3)
+  local CLUSTER=$(whiptail --title "PostgreSQL Clusters" --menu "Select cluster to drop" 16 120 5 "${CLUSTERS[@]}" --notags 3>&1 1>&2 2>&3)
   RET=$?
   if [ $RET -ne 0 ]; then
     return 0
@@ -381,8 +378,8 @@ drop_cluster_menu() {
     return 0
   fi
 
-  VER=$(awk  '{print $1}' <<< "$CLUSTER")
-  NAME=$(awk  '{print $2}' <<< "$CLUSTER")
+  local VER=$(awk  '{print $1}' <<< "$CLUSTER")
+  local NAME=$(awk  '{print $2}' <<< "$CLUSTER")
 
   if [ -z "$VER" ] || [ -z "$NAME" ]; then
     msgbox "Could not determine database version or name"
@@ -401,7 +398,7 @@ reset_sudo() {
     return $RET
   fi
 
-  NEWPASS=$(whiptail --backtitle "$( window_title )" --passwordbox "New $USER password" 8 60  3>&1 1>&2 2>&3)
+  local NEWPASS=$(whiptail --backtitle "$( window_title )" --passwordbox "New $USER password" 8 60  3>&1 1>&2 2>&3)
   RET=$?
   if [ $RET -ne 0 ]; then
     return 0
@@ -431,7 +428,7 @@ reset_psql() {
     return $RET
   fi
 
-  NEWPASS=$(whiptail --backtitle "$( window_title )" --passwordbox "New $USER password" 8 60 "$CH" 3>&1 1>&2 2>&3)
+  local NEWPASS=$(whiptail --backtitle "$( window_title )" --passwordbox "New $USER password" 8 60 "$CH" 3>&1 1>&2 2>&3)
   RET=$?
   if [ $RET -ne 0 ]; then
     return 0
@@ -453,7 +450,7 @@ reset_psql() {
 }
 
 backup_globals() {
-  local FILENAME="$1"
+  local DEST="$1"
 
   check_database_info
   RET=$?
@@ -461,14 +458,12 @@ backup_globals() {
     return $RET
   fi
 
-  if [ -z "$FILENAME" ]; then
+  if [ -z "$DEST" ]; then
     DEST=$(whiptail --backtitle "$( window_title )" --inputbox "Full file name to save globals to" 8 60 3>&1 1>&2 2>&3)
     RET=$?
     if [ $RET -ne 0 ]; then
       return $RET
     fi
-  else
-    DEST=$FILENAME
   fi
   
   log "Backing up globals to file "$DEST"."
@@ -485,7 +480,7 @@ backup_globals() {
 }
 
 restore_globals() {
-  local FILENAME="$1"
+  local SOURCE="$1"
 
   check_database_info
   RET=$?
@@ -493,14 +488,12 @@ restore_globals() {
     return 0
   fi
 
-  if [ -z "$FILENAME" ]; then
+  if [ -z "$SOURCE" ]; then
     SOURCE=$(whiptail --backtitle "$( window_title )" --inputbox "Full file name to globals file" 8 60 3>&1 1>&2 2>&3)
     RET=$?
     if [ $RET -ne 0 ]; then
       return $RET
     fi
-  else
-      SOURCE=$FILENAME
   fi
 
   log "Restoring globals from file $SOURCE"

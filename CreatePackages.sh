@@ -21,12 +21,11 @@ install_npm_node
 
 # Create Packages for bundling xTuple MWC/REST-API and xTupleCommerce
 
-mwc_createdirs_static_mwc()
-{
+mwc_createdirs_static_mwc() {
   check_pgdep
 
   echo "Creating Directories in ${BUILD_XT_TARGET_NAME}-${WORKDATE}"
-  # Create Static MWC Package
+
   BUILD_XT_ROOT=${BUILD_WORKING}/${BUILD_XT_TARGET_NAME}-${WORKDATE}
   BUILD_CONFIG_ETC=${BUILD_XT_ROOT}/etc
   BUILD_CONFIG_XTUPLE=${BUILD_CONFIG_ETC}/xtuple
@@ -48,12 +47,10 @@ mwc_createdirs_static_mwc()
   mkdir -p ${BUILD_CONFIG_SYSTEMD}
 }
 
-mwc_build_static_mwc()
-{
-  NODE_ENV=production
+mwc_build_static_mwc() {
   generate_github_token
 
-  GITCMD="git clone https://${GITHUB_TOKEN}:x-oauth-basic@github.com/xtuple"
+  local GITCMD="git clone https://${GITHUB_TOKEN}:x-oauth-basic@github.com/xtuple"
 
   ${GITCMD}/xtuple ${BUILD_XT}
   cd ${BUILD_XT} && git fetch --tags
@@ -216,8 +213,7 @@ mwc_build_static_mwc()
   fi
 }
 
-mwc_createconf_static_mwc()
-{
+mwc_createconf_static_mwc() {
   # setup encryption details
   touch ${BUILD_CONFIG_XTUPLE}/private/salt.txt
   touch ${BUILD_CONFIG_XTUPLE}/private/encryption_key.txt
@@ -255,8 +251,7 @@ Wrote out config for MWC:
   ${BUILD_CONFIG_XTUPLE}/config.js"
 }
 
-mwc_createinit_static_mwc()
-{
+mwc_createinit_static_mwc() {
 # create the upstart scripts
 cat << EOF > ${BUILD_CONFIG_INIT}/xtuple-${MWCNAME}.conf
 description "xTuple Node Server"
@@ -271,8 +266,7 @@ exec ./main.js -c /etc/xtuple/$MWCVERSION/$MWCNAME/config.js > /var/log/node-dat
 EOF
 }
 
-mwc_createsystemd_static_mwc()
-{
+mwc_createsystemd_static_mwc() {
 cat << EOF > ${BUILD_CONFIG_SYSTEMD}/xtuple-${MWCNAME}.service
 
 [Unit]
@@ -288,7 +282,7 @@ StandardOutput=syslog
 StandardError=syslog
 User=xtuple
 Group=xtuple
-Environment=NODE_ENV=production
+Environment=NODE_ENV=${NODE_ENV}
 ExecStop=/bin/kill -9 \$MAINPID
 SyslogIdentifier=xtuple-$MWCNAME
 ExecStart=/usr/local/bin/node /opt/xtuple/$MWCVERSION/$MWCNAME/xtuple/node-datasource/main.js -c /etc/xtuple/$MWCVERSION/$MWCNAME/config.js
@@ -296,8 +290,7 @@ ExecStart=/usr/local/bin/node /opt/xtuple/$MWCVERSION/$MWCNAME/xtuple/node-datas
 EOF
 }
 
-mwc_remove_git_dirs()
-{
+mwc_remove_git_dirs() {
   local STARTDIR=$(pwd)
 
   echo "Removing Git Directories"
@@ -309,8 +302,7 @@ mwc_remove_git_dirs()
   cd $STARTDIR
 }
 
-mwc_bundle_mwc()
-{
+mwc_bundle_mwc() {
   echo "Bundling MWC"
 
   cd ${BUILD_WORKING}
@@ -334,23 +326,20 @@ EOF
     exit 2
   else
     export ERP_MWC_TARBALL=${BUILD_XT_TARGET_NAME}-${BUILD_XT_TAG}.tar.gz
-    ERP_MWC_TARBALL=${BUILD_XT_TARGET_NAME}-${BUILD_XT_TAG}.tar.gz
-
     echo "Bundled MWC as ${BUILD_XT_TARGET_NAME}-${BUILD_XT_TAG}.tar.gz"
   fi
 }
 
-xtc_build_static_xtuplecommerce()
-{
+xtc_build_static_xtuplecommerce() {
   echo "Building Static xTupleCommerce"
 
   BUILD_XTC_TARGET_NAME=xTupleCommerce
   BUILD_XTC_ROOT=${BUILD_WORKING}/${BUILD_XTC_TARGET_NAME}-${WORKDATE}
   BUILD_XTC_CONF_DIR=${BUILD_XTC_ROOT}/config
 
-  CDDREPOURL=http://satis.codedrivendrupal.com
-  GITXDDIR=xtuple/xdruple-drupal
-  XDENV=dev
+  local CDDREPOURL=http://satis.codedrivendrupal.com
+  local GITXDDIR=xtuple/xdruple-drupal
+  local XDENV=dev
 
   ## IGNORE if creating project:
   echo "Running: composer create-project --stability ${XDENV} --no-interaction --repository-url=${CDDREPOURL} ${GITXDDIR} ${BUILD_XTC_ROOT}"
@@ -374,8 +363,7 @@ xtc_build_static_xtuplecommerce()
   echo "console prepare:dir returned $RET"
 }
 
-xtc_bundle_xtuplecommerce()
-{
+xtc_bundle_xtuplecommerce() {
   source functions/oatoken.fun
 
   echo "Bundling xTupleCommerce"
@@ -419,10 +407,9 @@ xtc_bundle_xtuplecommerce()
   fi
 }
 
-xtc_build_xtuplecommerce_envphp()
-{
+xtc_build_xtuplecommerce_envphp() {
   cd ${BUILD_WORKING}
-  CRMACCT=xTupleBuild
+  local CRMACCT=xTupleBuild
 
   loadcrm_gitconfig
   checkcrm_gitconfig
@@ -484,7 +471,7 @@ EOF
 
 writeout_config() {
 cat << EOF > ${BUILD_WORKING}/CreatePackages-${WORKDATE}.config
-NODE_ENV=production
+NODE_ENV=${NODE_ENV}
 PGVER=9.6
 MWC_VERSION=${BUILD_XT_TAG}
 ERP_MWC_TARBALL=${BUILD_XT_TARGET_NAME}-${BUILD_XT_TAG}.tar.gz
@@ -494,7 +481,7 @@ EOF
 
 writeout_xtau_config() {
 cat << EOF > ${BUILD_WORKING}/xtau_mwc-${WORKDATE}.config
-export NODE_ENV=production
+export NODE_ENV=${NODE_ENV}
 export PGVER=9.6
 export MWC_VERSION=${BUILD_XT_TAG}
 export ERP_MWC_TARBALL=${BUILD_XT_TARGET_NAME}-${BUILD_XT_TAG}.tar.gz
