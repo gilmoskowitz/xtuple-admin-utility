@@ -2,7 +2,7 @@
 # Copyright (c) 1999-2017 by OpenMFG LLC, d/b/a xTuple.
 # See www.xtuple.com/CPAL for the full text of the software license.
 
-[ -n "$(typeset -F -p log)" ]                   || source ${BUILD_WORKING}/common.sh
+[ -n "$(typeset -F -p log)" ] || source ${BUILD_WORKING:=.}/common.sh
 
 mwc_menu() {
   log "Opened Web Client menu"
@@ -128,6 +128,44 @@ install_mwc_menu() {
   log_exec install_mwc $MWCVERSION $MWCREFSPEC $MWCNAME $PRIVATEEXT $DATABASE $GITHUBNAME $GITHUBPASS
 }
 
+setup_encryption() {
+  local BASEDIR="$1"
+  local OWNER="$2"
+  local KEYLEN="${3:-4096}"
+  local DB="$4"
+  local NGINX_PORT="${5:-8443}"
+
+  log_exec sudo touch ${BASEDIR}/private/salt.txt
+  log_exec sudo touch ${BASEDIR}/private/encryption_key.txt
+
+  log_exec sudo chown -R $OWNER $BASEDIR
+  # temporarily so we can cat to them since bash is being a bitch about quoting the trim string below
+  log_exec sudo chmod 777 $BASEDIR/private/encryption_key.txt
+  log_exec sudo chmod 777 $BASEDIR/private/salt.txt
+
+  cat /dev/urandom | tr -dc '0-9a-zA-Z!@#$%^&*_+-'| head -c 64 > ${BASEDIR}/private/salt.txt
+  cat /dev/urandom | tr -dc '0-9a-zA-Z!@#$%^&*_+-'| head -c 64 > ${BASEDIR}/private/encryption_key.txt
+
+  sudo chmod 660 ${BASEDIR}/private/encryption_key.txt
+  sudo chmod 660 ${BASEDIR}/private/salt.txt
+
+  log_exec sudo openssl genrsa -des3 -out ${BASEDIR}/private/server.key -passout pass:xtuple $KEYLEN
+  log_exec sudo openssl rsa -in ${BASEDIR}/private/server.key -passin pass:xtuple -out ${BASEDIR}/private/key.pem -passout pass:xtuple
+  log_exec sudo openssl req -batch -new -key ${BASEDIR}/private/key.pem -out ${BASEDIR}/private/server.csr -subj '/CN='$(hostname)
+  log_exec sudo openssl x509 -req -days 365 -in ${BASEDIR}/private/server.csr -signkey ${BASEDIR}/private/key.pem -out ${BASEDIR}/private/server.crt
+
+  log_exec sudo cp ${BASEDIR}/node-datasource/sample_config.js ${BASEDIR}/config.js
+  log_exec sudo sed -i \
+    -e "/encryptionKeyFile/c\      encryptionKeyFile: \"/etc/xtuple/$MWCVERSION/"$MWCNAME"/private/encryption_key.txt\"," \
+    -e "/keyFile/c\      keyFile: \"/etc/xtuple/$MWCVERSION/"$MWCNAME"/private/key.pem\","                                \
+    -e "/certFile/c\      certFile: \"/etc/xtuple/$MWCVERSION/"$MWCNAME"/private/server.crt\","                           \
+    -e "/saltFile/c\      saltFile: \"/etc/xtuple/$MWCVERSION/"$MWCNAME"/private/salt.txt\","                             \
+    -e "/databases:/c\      databases: [\"$DB\"],"                                                                        \
+    -e "/port: 5432/c\      port: $PGPORT,"                                                                               \
+    -e "/port: 8443/c\      port: $NGINX_PORT,"    ${BASEDIR}/config.js
+
+  log_exec sudo chown -R $OWNER $BASEDIR
+}
 
 # $1 is xtuple version
 # $2 is the git refspec
@@ -207,39 +245,7 @@ install_mwc() {
   sudo rm -rf /etc/xtuple/$MWCVERSION/"$MWCNAME"
   log_exec sudo mkdir -p /etc/xtuple/$MWCVERSION/"$MWCNAME"/private
 
-  # setup encryption details
-  log_exec sudo touch /etc/xtuple/$MWCVERSION/"$MWCNAME"/private/salt.txt
-  log_exec sudo touch /etc/xtuple/$MWCVERSION/"$MWCNAME"/private/encryption_key.txt
-  log_exec sudo chown -R ${DEPLOYER_NAME}.${DEPLOYER_NAME} /etc/xtuple/$MWCVERSION/"$MWCNAME"
-  # temporarily so we can cat to them since bash is being a bitch about quoting the trim string below
-  log_exec sudo chmod 777 /etc/xtuple/$MWCVERSION/"$MWCNAME"/private/encryption_key.txt
-  log_exec sudo chmod 777 /etc/xtuple/$MWCVERSION/"$MWCNAME"/private/salt.txt
-
-  cat /dev/urandom | tr -dc '0-9a-zA-Z!@#$%^&*_+-'| head -c 64 > /etc/xtuple/$MWCVERSION/"$MWCNAME"/private/salt.txt
-  cat /dev/urandom | tr -dc '0-9a-zA-Z!@#$%^&*_+-'| head -c 64 > /etc/xtuple/$MWCVERSION/"$MWCNAME"/private/encryption_key.txt
-
-  log_exec sudo chmod 660 /etc/xtuple/$MWCVERSION/"$MWCNAME"/private/encryption_key.txt
-  log_exec sudo chmod 660 /etc/xtuple/$MWCVERSION/"$MWCNAME"/private/salt.txt
-
-  log_exec sudo openssl genrsa -des3 -out /etc/xtuple/$MWCVERSION/"$MWCNAME"/private/server.key -passout pass:xtuple 4096
-  log_exec sudo openssl rsa -in /etc/xtuple/$MWCVERSION/"$MWCNAME"/private/server.key -passin pass:xtuple -out /etc/xtuple/$MWCVERSION/"$MWCNAME"/private/key.pem -passout pass:xtuple
-  log_exec sudo openssl req -batch -new -key /etc/xtuple/$MWCVERSION/"$MWCNAME"/private/key.pem -out /etc/xtuple/$MWCVERSION/"$MWCNAME"/private/server.csr -subj '/CN='$(hostname)
-  log_exec sudo openssl x509 -req -days 365 -in /etc/xtuple/$MWCVERSION/"$MWCNAME"/private/server.csr -signkey /etc/xtuple/$MWCVERSION/"$MWCNAME"/private/key.pem -out /etc/xtuple/$MWCVERSION/"$MWCNAME"/private/server.crt
-
-  log_exec sudo cp /opt/xtuple/$MWCVERSION/"$MWCNAME"/xtuple/node-datasource/sample_config.js /etc/xtuple/$MWCVERSION/"$MWCNAME"/config.js
-
-  log_exec sudo sed -i  "/encryptionKeyFile/c\      encryptionKeyFile: \"/etc/xtuple/$MWCVERSION/"$MWCNAME"/private/encryption_key.txt\"," /etc/xtuple/$MWCVERSION/"$MWCNAME"/config.js
-  log_exec sudo sed -i  "/keyFile/c\      keyFile: \"/etc/xtuple/$MWCVERSION/"$MWCNAME"/private/key.pem\"," /etc/xtuple/$MWCVERSION/"$MWCNAME"/config.js
-  log_exec sudo sed -i  "/certFile/c\      certFile: \"/etc/xtuple/$MWCVERSION/"$MWCNAME"/private/server.crt\"," /etc/xtuple/$MWCVERSION/"$MWCNAME"/config.js
-  log_exec sudo sed -i  "/saltFile/c\      saltFile: \"/etc/xtuple/$MWCVERSION/"$MWCNAME"/private/salt.txt\"," /etc/xtuple/$MWCVERSION/"$MWCNAME"/config.js
-
-  log "Using database $ERP_DATABASE_NAME"
-  log_exec sudo sed -i  "/databases:/c\      databases: [\"$ERP_DATABASE_NAME\"]," /etc/xtuple/$MWCVERSION/"$MWCNAME"/config.js
-  log_exec sudo sed -i  "/port: 5432/c\      port: $PGPORT," /etc/xtuple/$MWCVERSION/"$MWCNAME"/config.js
-
-  log_exec sudo sed -i  "/port: 8443/c\      port: $NGINX_PORT," /etc/xtuple/$MWCVERSION/"$MWCNAME"/config.js
-
-  log_exec sudo chown -R ${DEPLOYER_NAME}.${DEPLOYER_NAME} /etc/xtuple
+  setup_encryption /etc/xtuple/$MWCVERSION/"$MWCNAME" ${DEPLOYER_NAME}.${DEPLOYER_NAME} 4096 "$ERP_DATABASE_NAME" $NGINX_PORT
 
   if [ $DISTRO = "ubuntu" ]; then
     case "$CODENAME" in

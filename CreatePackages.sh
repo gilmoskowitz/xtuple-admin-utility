@@ -13,6 +13,7 @@ source ${BUILD_WORKING}/functions/setup.fun
 
 [ -n "$(typeset -F -p log)" ]                   || source ${BUILD_WORKING}/common.sh
 [ -n "$(typeset -F -p generate_github_token)" ] || source ${BUILD_WORKING}/tokenmanagement.sh
+[ -n "$(typeset -F -p setup_encryption)" ]      || source ${BUILD_WORKING}/mobileclient.sh
 
 export NODE_ENV=production
 
@@ -47,197 +48,62 @@ mwc_createdirs_static_mwc() {
   mkdir -p ${BUILD_CONFIG_SYSTEMD}
 }
 
+checkout_repository() {
+  log "In: ${BASH_SOURCE} ${FUNCNAME[0]} $@"
+  local GITHUB_TOKEN="$1"
+  local REPO="$2"
+  local DEST="$3"
+  local TAG="$4"
+  local STARTDIR=$(pwd)
+
+  if [ -z "$DEST" ] ; then
+    DEST="$STARTDIR/$REPO"
+  fi
+
+  git clone https://${GITHUB_TOKEN}:x-oauth-basic@github.com/xtuple/${REPO} ${DEST}
+  cd ${DEST}
+  git fetch --tags
+  BUILD_TAG=$(git describe --tags $(git rev-list --tags --max-count=1))
+  log_exec git checkout ${BUILD_TAG}
+  RET=$?
+  log "git checkout ${BUILD_TAG} returned: ${RET}"
+
+  log_exec git submodule update --init --recursive
+  RET=$?
+  log "git submodule update returned: ${RET}"
+
+  if [[ -f package.json ]]; then
+    log_exec npm install
+    RET=$?
+    log "npm install returned: ${RET}"
+  fi
+
+  if [[ -n "$TAG" ]] ; then
+    $TAG=${BUILD_TAG}
+    log "Set $TAG to $BUILD_TAG"
+  fi
+
+  cd $STARTDIR
+}
+
 mwc_build_static_mwc() {
   generate_github_token
 
-  local GITCMD="git clone https://${GITHUB_TOKEN}:x-oauth-basic@github.com/xtuple"
-
-  ${GITCMD}/xtuple ${BUILD_XT}
-  cd ${BUILD_XT} && git fetch --tags
-  BUILD_XT_TAG=$(git describe --tags $(git rev-list --tags --max-count=1))
-  cd ${BUILD_XT} && git checkout ${BUILD_XT_TAG}
-
-  if [[ -f ${BUILD_XT}/.gitmodules ]]; then
-    echo ".gitmodules found for ${BUILD_XT}"
-    echo "Updating submodules"
-    git submodule update --init --recursive
-    RET=$?
-    echo "submodule update for ${BUILD_XT} returned: ${RET}"
-  fi
-
-  if [[ -f ${BUILD_XT}/package.json ]]; then
-    echo "package.json found for ${BUILD_XT}"
-    echo "Running npm install"
-    cd ${BUILD_XT}
-    npm install
-    RET=$?
-    echo "npm install returned: ${RET}"
-  fi
-
-  # We need to get the latest xtuple tags before.
+  checkout_repository ${GITHUB_TOKEN} xtuple ${BUILD_XT} BUILD_XT_TAG
   MWCVERSION=${BUILD_XT_TAG}
-
   DATABASE=xtupleerp
   MWCNAME=xtupleerp
 
-  ${GITCMD}/private-extensions ${BUILD_PE}
-  cd ${BUILD_PE} && git fetch --tags
-  BUILD_PE_TAG=$(git describe --tags $(git rev-list --tags --max-count=1))
-  cd ${BUILD_PE} && git checkout ${BUILD_PE_TAG}
-
-  if [[ -f ${BUILD_PE}/.gitmodules ]]; then
-    echo ".gitmodules found for ${BUILD_PE}"
-    echo "Updating submodules"
-    git submodule update --init --recursive
-    RET=$?
-    echo "submodule update for ${BUILD_PE} returned: ${RET}"
-  fi
-
-  if [[ -f ${BUILD_PE}/package.json ]]; then
-    echo "package.json found for ${BUILD_PE}"
-    echo "Running npm install"
-    cd ${BUILD_PE}
-    npm install
-    RET=$?
-    echo "npm install returned: ${RET}"
-  fi
-
-  ${GITCMD}/enhanced-pricing ${BUILD_EP}
-  cd ${BUILD_EP} && git fetch --tags
-  BUILD_EP_TAG=$(git describe --tags $(git rev-list --tags --max-count=1))
-  cd ${BUILD_EP} && git checkout ${BUILD_EP_TAG}
-
-  if [[ -f ${BUILD_EP}/.gitmodules ]]; then
-    echo ".gitmodules found for ${BUILD_EP}"
-    echo "Updating submodules"
-    git submodule update --init --recursive
-    RET=$?
-    echo "submodule update for ${BUILD_EP} returned: ${RET}"
-  fi
-
-  if [[ -f ${BUILD_EP}/package.json ]]; then
-    echo "package.json found for ${BUILD_EP}"
-    echo "Running npm install"
-    cd ${BUILD_EP}
-    npm install
-    RET=$?
-    echo "npm install returned: ${RET}"
-  fi
-
-  ${GITCMD}/nodejsshim ${BUILD_NJ}
-  cd ${BUILD_NJ} && git fetch --tags
-  BUILD_NJ_TAG=$(git describe --tags $(git rev-list --tags --max-count=1))
-  cd ${BUILD_NJ} && git checkout ${BUILD_NJ_TAG}
-
-  if [[ -f ${BUILD_NJ}/.gitmodules ]]; then
-    echo ".gitmodules found for ${BUILD_NJ}"
-    echo "Updating submodules"
-    git submodule update --init --recursive
-    RET=$?
-    echo "submodule update for ${BUILD_NJ} returned: ${RET}"
-  fi
-
-  if [[ -f ${BUILD_NJ}/package.json ]]; then
-    echo "package.json found for ${BUILD_NJ}"
-    echo "Running npm install"
-    cd ${BUILD_NJ}
-    npm install
-    RET=$?
-    echo "npm install returned: ${RET}"
-  fi
-
-  ${GITCMD}/xdruple-extension ${BUILD_XD}
-  cd ${BUILD_XD} && git fetch --tags
-  BUILD_XD_TAG=$(git describe --tags $(git rev-list --tags --max-count=1))
-  cd ${BUILD_XD} && git checkout ${BUILD_XD_TAG}
-
-  if [[ -f ${BUILD_XD}/.gitmodules ]]; then
-    echo ".gitmodules found for ${BUILD_XD}"
-    echo "Updating submodules"
-    git submodule update --init --recursive
-    RET=$?
-    echo "submodule update for ${BUILD_XD} returned: ${RET}"
-  fi
-
-  if [[ -f ${BUILD_XD}/package.json ]]; then
-    echo "package.json found for ${BUILD_XD}"
-    echo "Running npm install"
-    cd ${BUILD_XD}
-    npm install
-    RET=$?
-    echo "npm install returned: ${RET}"
-  fi
-
-  ${GITCMD}/payment-gateways ${BUILD_PG}
-  cd ${BUILD_PG} && git fetch --tags
-  BUILD_PG_TAG=$(git describe --tags $(git rev-list --tags --max-count=1))
-  cd ${BUILD_PG} && git checkout ${BUILD_PG_TAG}
-
-  if [[ -f ${BUILD_PG}/.gitmodules ]]; then
-    echo ".gitmodules found for ${BUILD_PG}"
-    echo "Updating submodules"
-    git submodule update --init --recursive
-    RET=$?
-    echo "submodule update for ${BUILD_PG} returned: ${RET}"
-  fi
-
-  if [[ -f ${BUILD_PG}/package.json ]]; then
-    echo "package.json found for ${BUILD_PG}"
-    echo "Running npm install"
-    cd ${BUILD_PG}
-    npm install
-    RET=$?
-    echo "npm install returned: ${RET}"
-  fi
-
-  ${GITCMD}/xtdash ${BUILD_DA}
-  cd ${BUILD_DA} && git fetch --tags
-  BUILD_DA_TAG=$(git describe --tags $(git rev-list --tags --max-count=1))
-  cd ${BUILD_DA} && git checkout ${BUILD_DA_TAG}
-
-  if [[ -f ${BUILD_DA}/.gitmodules ]]; then
-    echo ".gitmodules found for ${BUILD_DA}"
-    echo "Updating submodules"
-    git submodule update --init --recursive
-    RET=$?
-    echo "submodule update for ${BUILD_DA} returned: ${RET}"
-  fi
-
-  if [[ -f ${BUILD_DA}/package.json ]]; then
-    echo "package.json found for ${BUILD_DA}"
-    echo "Running npm install"
-    cd ${BUILD_DA}
-    npm install
-    RET=$?
-    echo "npm install returned: ${RET}"
-  fi
+  checkout_repository ${GITHUB_TOKEN} private-extensions "${BUILD_PE}" BUILD_PE_TAG
+  checkout_repository ${GITHUB_TOKEN} enhanced-pricing   "${BUILD_EP}" BUILD_EP_TAG
+  checkout_repository ${GITHUB_TOKEN} nodejsshim         "${BUILD_NJ}" BUILD_NJ_TAG
+  checkout_repository ${GITHUB_TOKEN} xdruple-extension  "${BUILD_XD}" BUILD_XD_TAG
+  checkout_repository ${GITHUB_TOKEN} payment-gateways   "${BUILD_PG}" BUILD_PG_TAG
+  checkout_repository ${GITHUB_TOKEN} xtdash             "${BUILD_DA}" BUILD_DA_TAG
 }
 
 mwc_createconf_static_mwc() {
-  # setup encryption details
-  touch ${BUILD_CONFIG_XTUPLE}/private/salt.txt
-  touch ${BUILD_CONFIG_XTUPLE}/private/encryption_key.txt
-
-  cat /dev/urandom | tr -dc '0-9a-zA-Z!@#$%^&*_+-'| head -c 64 > ${BUILD_CONFIG_XTUPLE}/private/salt.txt
-  cat /dev/urandom | tr -dc '0-9a-zA-Z!@#$%^&*_+-'| head -c 64 > ${BUILD_CONFIG_XTUPLE}/private/encryption_key.txt
-
-  chmod 660 ${BUILD_CONFIG_XTUPLE}/private/encryption_key.txt
-  chmod 660 ${BUILD_CONFIG_XTUPLE}/private/salt.txt
-
-  openssl genrsa -des3 -out ${BUILD_CONFIG_XTUPLE}/private/server.key -passout pass:xtuple 1024
-  openssl rsa -in ${BUILD_CONFIG_XTUPLE}/private/server.key -passin pass:xtuple -out ${BUILD_CONFIG_XTUPLE}/private/key.pem -passout pass:xtuple
-  openssl req -batch -new -key ${BUILD_CONFIG_XTUPLE}/private/key.pem -out ${BUILD_CONFIG_XTUPLE}/private/server.csr -subj '/CN='$(hostname)
-  openssl x509 -req -days 365 -in ${BUILD_CONFIG_XTUPLE}/private/server.csr -signkey ${BUILD_CONFIG_XTUPLE}/private/key.pem -out ${BUILD_CONFIG_XTUPLE}/private/server.crt
-
-  cp ${BUILD_XT}/node-datasource/sample_config.js ${BUILD_CONFIG_XTUPLE}/config.js
-
-  sed -i  "/encryptionKeyFile/c\      encryptionKeyFile: \"/etc/xtuple/$MWCVERSION/"$MWCNAME"/private/encryption_key.txt\"," ${BUILD_CONFIG_XTUPLE}/config.js
-  sed -i  "/keyFile/c\      keyFile: \"/etc/xtuple/$MWCVERSION/"$MWCNAME"/private/key.pem\"," ${BUILD_CONFIG_XTUPLE}/config.js
-  sed -i  "/certFile/c\      certFile: \"/etc/xtuple/$MWCVERSION/"$MWCNAME"/private/server.crt\"," ${BUILD_CONFIG_XTUPLE}/config.js
-  sed -i  "/saltFile/c\      saltFile: \"/etc/xtuple/$MWCVERSION/"$MWCNAME"/private/salt.txt\"," ${BUILD_CONFIG_XTUPLE}/config.js
-
-  sed -i  "/databases:/c\      databases: [\"$DATABASE\"]," ${BUILD_CONFIG_XTUPLE}/config.js
-  # sed -i  "/port: 5432/c\      port: \"$PGPORT\"," ${BUILD_CONFIG_XTUPLE}/config.js
+  setup_encryption ${BUILD_CONFIG_XTUPLE} $(whoami) 1024 ${DATABASE}
 
   echo "Wrote out keys for MWC:
   ${BUILD_CONFIG_XTUPLE}/private/salt.txt
@@ -317,17 +183,16 @@ enhanced-pricing@${BUILD_EP_TAG}
 xdruple-extension@${BUILD_XD_TAG}
 EOF
 
-  cp -R ${BUILD_XT_ROOT} ${BUILD_XT_TARGET_NAME}-${BUILD_XT_TAG}
+  mv ${BUILD_XT_ROOT} ${BUILD_XT_TARGET_NAME}-${BUILD_XT_TAG}
 
   tar czf ${BUILD_XT_TARGET_NAME}-${BUILD_XT_TAG}.tar.gz ${BUILD_XT_TARGET_NAME}-${BUILD_XT_TAG}
   RET=$?
   if [[ $RET -ne 0 ]]; then
     echo "Bundling MWC Failed"
     exit 2
-  else
-    export ERP_MWC_TARBALL=${BUILD_XT_TARGET_NAME}-${BUILD_XT_TAG}.tar.gz
-    echo "Bundled MWC as ${BUILD_XT_TARGET_NAME}-${BUILD_XT_TAG}.tar.gz"
   fi
+  export ERP_MWC_TARBALL=${BUILD_XT_TARGET_NAME}-${BUILD_XT_TAG}.tar.gz
+  echo "Bundled MWC as ${BUILD_XT_TARGET_NAME}-${BUILD_XT_TAG}.tar.gz"
 }
 
 xtc_build_static_xtuplecommerce() {
@@ -401,10 +266,9 @@ xtc_bundle_xtuplecommerce() {
   if [[ $RET -ne 0 ]]; then
     echo "Bundling xTupleCommerce Failed"
     exit 2
-  else
-    echo "xTupleCommerce bundling was a success!"
-    echo "Created: ${BUILD_XTC_TARGET_NAME}-${BUILD_XT_TAG}.tar.gz "
   fi
+  echo "xTupleCommerce bundling was a success!"
+  echo "Created: ${BUILD_XTC_TARGET_NAME}-${BUILD_XT_TAG}.tar.gz "
 }
 
 xtc_build_xtuplecommerce_envphp() {

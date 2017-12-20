@@ -3,6 +3,7 @@
 # See www.xtuple.com/CPAL for the full text of the software license.
 
 LOG_FILE=$(pwd)/install-$DATE.log
+DATE=$(date +%Y.%m.%d-%H:%M)
 
 log_exec() {
   "$@" | tee -a $LOG_FILE 2>&1
@@ -120,6 +121,7 @@ install_prereqs() {
       install_pg_repo
       sudo apt-get update
       sudo apt-get -y install axel git whiptail unzip bzip2 wget curl build-essential libssl-dev postgresql-client-$PGVER cups python-software-properties openssl libnet-ssleay-perl libauthen-pam-perl libpam-runtime libio-pty-perl perl libavahi-compat-libdnssd-dev python xvfb jq s3cmd python-magic
+      sudo apt-get -y install postgresql-common
       RET=$?
       if [ $RET -ne 0 ]; then
         msgbox "Something went wrong installing prerequisites for $DISTRO/$CODENAME. Check the log for more info. "

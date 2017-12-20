@@ -3,6 +3,7 @@
 # See www.xtuple.com/CPAL for the full text of the software license.
 
 ACTIONS=()
+DATE=$(date +%Y.%m.%d-%H:%M)
 
 # default configurations
 LOG_FILE=$(pwd)/install-$DATE.log

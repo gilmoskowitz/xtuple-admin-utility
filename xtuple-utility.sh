@@ -2,7 +2,6 @@
 # Copyright (c) 1999-2017 by OpenMFG LLC, d/b/a xTuple.
 # See www.xtuple.com/CPAL for the full text of the software license.
 
-DATE=$(date +%Y.%m.%d-%H:%M)
 export _REV="1.0"
 export WORKDIR=$(pwd)
 export MODE="manual"
