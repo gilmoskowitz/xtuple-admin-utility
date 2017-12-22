@@ -76,11 +76,7 @@ checkcrm_gitconfig() {
     git config --global xdruple.xdrepoprefix "${XDREPOPREFIX}"
   fi
 
-  #environment - should be ERP_ENVIRONMENT for consistency in this section
-  ENVIRONMENT=$(git config --get ${WHICHSHIP}.environment)
-  if [[ -z ${ENVIRONMENT} ]]; then
-    git config --global ${CRMACCT,,}env.environment "{ENVIRONMENT}"
-  fi
+  #TODO: environment - ENVIRONMENT or ERP_ENVIRONMENT?
 
   #application
   ERP_APPLICATION=$(git config --get ${WHICHSHIP}.erpapplication)

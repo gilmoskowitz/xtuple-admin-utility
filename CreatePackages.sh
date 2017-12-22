@@ -17,12 +17,14 @@ source ${BUILD_WORKING}/functions/setup.fun
 
 export NODE_ENV=production
 
-# From functions/setup.fun
-install_npm_node
 
-# Create Packages for bundling xTuple MWC/REST-API and xTupleCommerce
+# Create Packages for bundling xTuple REST-API and xTupleCommerce
 
 mwc_createdirs_static_mwc() {
+  echo "In: ${BASH_SOURCE} ${FUNCNAME[0]}"
+
+  # From functions/setup.fun
+  install_npm_node
   check_pgdep
 
   echo "Creating Directories in ${BUILD_XT_TARGET_NAME}-${WORKDATE}"
@@ -53,7 +55,7 @@ checkout_repository() {
   local GITHUB_TOKEN="$1"
   local REPO="$2"
   local DEST="$3"
-  local TAG="$4"
+  local TAGVARNAME="$4"
   local STARTDIR=$(pwd)
 
   if [ -z "$DEST" ] ; then
@@ -65,12 +67,7 @@ checkout_repository() {
   git fetch --tags
   BUILD_TAG=$(git describe --tags $(git rev-list --tags --max-count=1))
   log_exec git checkout ${BUILD_TAG}
-  RET=$?
-  log "git checkout ${BUILD_TAG} returned: ${RET}"
-
   log_exec git submodule update --init --recursive
-  RET=$?
-  log "git submodule update returned: ${RET}"
 
   if [[ -f package.json ]]; then
     log_exec npm install
@@ -78,15 +75,16 @@ checkout_repository() {
     log "npm install returned: ${RET}"
   fi
 
-  if [[ -n "$TAG" ]] ; then
-    $TAG=${BUILD_TAG}
-    log "Set $TAG to $BUILD_TAG"
+  if [[ -n "$TAGVARNAME" ]] ; then
+    $TAGVARNAME=${BUILD_TAG}
+    log "Set $TAGVARNAME to $BUILD_TAG"
   fi
 
   cd $STARTDIR
 }
 
 mwc_build_static_mwc() {
+  echo "In: ${BASH_SOURCE} ${FUNCNAME[0]}"
   generate_github_token
 
   checkout_repository ${GITHUB_TOKEN} xtuple ${BUILD_XT} BUILD_XT_TAG
@@ -103,6 +101,7 @@ mwc_build_static_mwc() {
 }
 
 mwc_createconf_static_mwc() {
+  echo "In: ${BASH_SOURCE} ${FUNCNAME[0]}"
   setup_encryption ${BUILD_CONFIG_XTUPLE} $(whoami) 1024 ${DATABASE}
 
   echo "Wrote out keys for MWC:
@@ -118,8 +117,10 @@ Wrote out config for MWC:
 }
 
 mwc_createinit_static_mwc() {
-# create the upstart scripts
-cat << EOF > ${BUILD_CONFIG_INIT}/xtuple-${MWCNAME}.conf
+  echo "In: ${BASH_SOURCE} ${FUNCNAME[0]}"
+
+  # create the upstart scripts
+  cat << EOF > ${BUILD_CONFIG_INIT}/xtuple-${MWCNAME}.conf
 description "xTuple Node Server"
 start on filesystem or runlevel [2345]
 stop on runlevel [!2345]
@@ -133,7 +134,9 @@ EOF
 }
 
 mwc_createsystemd_static_mwc() {
-cat << EOF > ${BUILD_CONFIG_SYSTEMD}/xtuple-${MWCNAME}.service
+  echo "In: ${BASH_SOURCE} ${FUNCNAME[0]}"
+
+  cat << EOF > ${BUILD_CONFIG_SYSTEMD}/xtuple-${MWCNAME}.service
 
 [Unit]
 Description=xTuple ERP NodeJS Server
@@ -157,6 +160,7 @@ EOF
 }
 
 mwc_remove_git_dirs() {
+  echo "In: ${BASH_SOURCE} ${FUNCNAME[0]}"
   local STARTDIR=$(pwd)
 
   echo "Removing Git Directories"
@@ -164,11 +168,11 @@ mwc_remove_git_dirs() {
              ${BUILD_PG} ${BUILD_NJ} ${BUILD_EP} ; do
     cd ${DIR} && rm -rf .git
   done
-
   cd $STARTDIR
 }
 
 mwc_bundle_mwc() {
+  echo "In: ${BASH_SOURCE} ${FUNCNAME[0]}"
   echo "Bundling MWC"
 
   cd ${BUILD_WORKING}
@@ -184,7 +188,6 @@ xdruple-extension@${BUILD_XD_TAG}
 EOF
 
   mv ${BUILD_XT_ROOT} ${BUILD_XT_TARGET_NAME}-${BUILD_XT_TAG}
-
   tar czf ${BUILD_XT_TARGET_NAME}-${BUILD_XT_TAG}.tar.gz ${BUILD_XT_TARGET_NAME}-${BUILD_XT_TAG}
   RET=$?
   if [[ $RET -ne 0 ]]; then
@@ -196,6 +199,7 @@ EOF
 }
 
 xtc_build_static_xtuplecommerce() {
+  echo "In: ${BASH_SOURCE} ${FUNCNAME[0]}"
   echo "Building Static xTupleCommerce"
 
   BUILD_XTC_TARGET_NAME=xTupleCommerce
@@ -229,6 +233,7 @@ xtc_build_static_xtuplecommerce() {
 }
 
 xtc_bundle_xtuplecommerce() {
+  echo "In: ${BASH_SOURCE} ${FUNCNAME[0]}"
   source functions/oatoken.fun
 
   echo "Bundling xTupleCommerce"
@@ -272,6 +277,7 @@ xtc_bundle_xtuplecommerce() {
 }
 
 xtc_build_xtuplecommerce_envphp() {
+  echo "In: ${BASH_SOURCE} ${FUNCNAME[0]}"
   cd ${BUILD_WORKING}
   local CRMACCT=xTupleBuild
 
@@ -334,6 +340,8 @@ EOF
 }
 
 writeout_config() {
+echo "In: ${BASH_SOURCE} ${FUNCNAME[0]}"
+
 cat << EOF > ${BUILD_WORKING}/CreatePackages-${WORKDATE}.config
 NODE_ENV=${NODE_ENV}
 PGVER=9.6
@@ -344,6 +352,8 @@ EOF
 }
 
 writeout_xtau_config() {
+echo "In: ${BASH_SOURCE} ${FUNCNAME[0]}"
+
 cat << EOF > ${BUILD_WORKING}/xtau_mwc-${WORKDATE}.config
 export NODE_ENV=${NODE_ENV}
 export PGVER=9.6
@@ -353,23 +363,62 @@ EOF
 }
 
 xtau_deploy_mwc() {
+  echo "In: ${BASH_SOURCE} ${FUNCNAME[0]}"
+
+  WAN_IP=$(curl ipv4.icanhazip.com)
+  LAN_IP=$(hostname -I)
+
   if (whiptail --yes-button "Yes" --no-button "No Thanks"  --yesno "Would you like to deploy ${ERP_MWC_TARBALL}?" 10 60) then
-    set_database_info_select
+    install_mwc
+    config_mwc_scripts
+    sudo systemctl daemon-reload
+    start_mwc
+
+    msgbox "Web Client Setup Complete!
+Here is where you can login:
+
+xTuple Desktop Client: ${MWC_VERSION}
+
+Public IP: ${WAN_IP}
+Private IP: ${LAN_IP}
+Port: ${PGPORT}
+Database: ${ERP_DATABASE_NAME}
+User: <Your User> 
+Pass: <Your Pass>
+URL: http://${WAN_IP}:8443
+URL: http://${LAN_IP}:8443
+URL: http://${DOMAIN}:8443
+
+You may need to configure your firewall or router to forward incoming traffic from
+${WAN_IP} to ${LAN_IP}:${PGPORT} if you cannot connect from outside 
+your network. See your Administrator."
+
+    main_menu
+
     RET=$?
     return $RET
   else
     # I specifically need to check for ESC here as I am using the yesno box as a multiple choice question, 
     # so it chooses no code even during escape which in this case I want to actually escape when someone hits escape. 
     if [ $? -eq 255 ]; then
-      return 255
+        return 255
     fi
-    set_database_info_manual
+    install_mwc
     RET=$?
     return $RET
   fi
 }
 
+xtau_deploy_ecommerce() {
+  echo "In: ${BASH_SOURCE} ${FUNCNAME[0]}"
+
+  setup_flywheel
+  main_menu
+}
+
 mwc_only() {
+  echo "In: ${BASH_SOURCE} ${FUNCNAME[0]}"
+
   mwc_createdirs_static_mwc
   mwc_build_static_mwc
   mwc_createconf_static_mwc
@@ -380,6 +429,8 @@ mwc_only() {
 }
 
 xtc_only() {
+  echo "In: ${BASH_SOURCE} ${FUNCNAME[0]}"
+
   xtc_build_static_xtuplecommerce
   xtc_build_xtuplecommerce_envphp
   xtc_bundle_xtuplecommerce
@@ -387,15 +438,20 @@ xtc_only() {
 }
 
 build_all() {
+  echo "In: ${BASH_SOURCE} ${FUNCNAME[0]}"
+
   mwc_only
   xtc_only
   writeout_config
 }
 
 build_xtau() {
+echo "In: ${BASH_SOURCE} ${FUNCNAME[0]}"
   export ISXTAU=1
   HAS_MWC_CONFIG=$(ls -t1 xtau_mwc*.config |  head -n 1)
 
+  install_npm_node
+  check_pgdep
   if [[ -f  ${HAS_MWC_CONFIG} ]]; then
     echo "sourcing ${HAS_MWC_CONFIG}"
     source ${HAS_MWC_CONFIG}
@@ -404,12 +460,14 @@ build_xtau() {
        echo "Tarball: ${BUILD_XT_TARGET_NAME}-${MWC_VERSION}.tar.gz "
      xtau_deploy_mwc
     fi
+# TODO: Perry - is this correct from here to the matching close brace? {
   else
     mwc_createdirs_static_mwc
     mwc_build_static_mwc
     mwc_bundle_mwc
     writeout_xtau_config
     xtau_deploy_mwc
+# }
   fi
 }
 

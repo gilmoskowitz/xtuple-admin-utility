@@ -7,6 +7,7 @@ export DEPLOYER_NAME=$(whoami)
 
 WORKDAY=$(date "+%m%d%y")
 WORKDATE=$(date "+%m%d%y-%s")
+GITHUB_TOKEN=$(git config --get github.token)
 
 read_configs() {
   if [[ -f ${WORKDIR}/CreatePackages-${WORKDAY}.config ]]; then
@@ -56,7 +57,6 @@ GATEWAY_NAME='Example'
 GATEWAY_HOSTNAME='api.example.com'
 GATEWAY_BASE_PATH='/v1'
 GATEWAY_NODE_LIB_NAME='example' " ) | tee -a ${WORKDIR}/setup.ini
-    exit 2
   fi
 }
 
@@ -105,7 +105,6 @@ GATEWAY_HOSTNAME='api.example.com'
 GATEWAY_BASE_PATH='/v1'
 GATEWAY_NODE_LIB_NAME='example' " ) | tee -a ${WORKDIR}/setup.ini
 
-    exit 2
   fi
 }
 
@@ -165,41 +164,14 @@ install_npm_node() {
     echo "Found n"
   else
     echo "Need to install npm dependencies"
-
     wget https://raw.githubusercontent.com/visionmedia/n/master/bin/n -qO n
     chmod +x n
     sudo mv n /usr/bin/n
-    sudo n 0.10.40
   fi
 
-  if type -p "npm" > /dev/null; then
-    echo "Found npm, checking version"
-    NPM_VER=$(npm -v | grep -q '^2')
-
-    if [[ -z $NPM_VER ]]; then
-      echo "Need to upgrade npm to 2.x.x"
-      sudo npm install -g npm@2.x.x
-      RET=$?
-      if [[ $RET -ne 0 ]]; then
-	echo "Something happened installing npm@2.xx"
-      else
-	echo "npm upgraded successfully."
-      fi
-    else
-     echo "Installed npm version ok."
-   fi
-  fi
-
-  if type -p "browserify" > /dev/null; then
-    echo "Found browserify"
-  else
-    echo "Need to install browserify dependencies globally"
-    sudo npm install -g browserify
-    RET=$?
-    if [[ $RET -ne 0 ]]; then
-      echo "Issue installing browserify"
-    fi
-  fi
+  sudo n 0.10.40
+  sudo npm install -g npm@2.x.x
+  sudo npm install -g browserify
 }
 
 check_npm() {
@@ -210,19 +182,11 @@ check_npm() {
   if type -p "npm" > /dev/null; then
     echo "Found npm, checking version"
     NPM_VER=$(npm -v | grep -q '^2')
-
-    if [[ -z $NPM_VER ]]; then
-      echo "Need to upgrade npm to 2.x.x"
-      sudo npm install -g npm@2.x.x
-      RET=$?
-      if [[ $RET -ne 0 ]]; then
-	echo "Something happened installing npm@2.xx"
-      else
-	echo "npm upgraded successfully."
-      fi
-    else
-      echo "Installed npm version ok."
+    if [[ -z "$NPM_VER" ]] ; then
+      install_npm_node
     fi
+  else
+    echo "installed npm version ok."
   fi
 }
 
@@ -295,42 +259,60 @@ setup_postgresql_cluster() {
 }
 
 generate_p12() {
+  echo "In: ${BASH_SOURCE} ${FUNCNAME[0]}"
   # THE P12 KEY OUT NEEDS TO GO IN /var/xtuple/keys/
-  NGINX_ECOM_DOMAIN='xTupleCommerce'
-  ECOMM_ADMIN_EMAIL="admin@xtuple.xd"
-  ERP_SITE_URL='xtuple.xd'
+  # NGINX_ECOM_DOMAIN='xTupleCommerce'
+  # ECOMM_ADMIN_EMAIL="admin@xtuple.xd"
+  # ERP_SITE_URL='xtuple.xd'
 
   KEY_P12_PATH=${WORKDIR}/private
   KEYTMP=${KEY_P12_PATH}/tmp
   mkdir -p ${KEY_P12_PATH}
   mkdir -p ${KEYTMP}
+  rm -rf ${KEYTMP}/*.key
+  rm -rf ${KEYTMP}/*.csr
+  rm -rf ${KEYTMP}/*.p12
+  rm -rf ${KEYTMP}/*.pem
+  rm -rf ${KEYTMP}/*.crt
 
   NGINX_ECOM_DOMAIN_P12=${NGINX_ECOM_DOMAIN}.p12
+  export NGINX_ECOM_DOMAIN_P12=${NGINX_ECOM_DOMAIN}.p12
 
-  ssh-keygen -t rsa -b 2048 -C "${ECOMM_ADMIN_EMAIL}" -f ${KEYTMP}/keypair.key -P ''
-  openssl req -batch -new -key ${KEYTMP}/keypair.key -out ${KEYTMP}/keypair.csr
-  openssl x509 -req -in ${KEYTMP}/keypair.csr -signkey ${KEYTMP}/keypair.key -out ${KEYTMP}/keypair.crt
-  openssl pkcs12 -export -in ${KEYTMP}/keypair.crt -inkey ${KEYTMP}/keypair.key -out ${KEYTMP}/${NGINX_ECOM_DOMAIN_P12} -password pass:notasecret
-  openssl pkcs12 -in ${KEYTMP}/${NGINX_ECOM_DOMAIN_P12} -passin pass:notasecret -nocerts -nodes | openssl rsa > ${KEYTMP}/private.pem
-  openssl rsa -in ${KEYTMP}/private.pem -passin pass:notasecret -pubout -passout pass:notasecret > ${KEYTMP}/public.pem
+  ssh-keygen -t rsa -b 2048 -C "${ECOMM_ADMIN_EMAIL}" -f ${KEYTMP}/${NGINX_ECOM_DOMAIN}.key -P ''
+  openssl req -batch -new -key ${KEYTMP}/${NGINX_ECOM_DOMAIN}.key -out ${KEYTMP}/${NGINX_ECOM_DOMAIN}.csr
+  openssl x509 -req -in ${KEYTMP}/${NGINX_ECOM_DOMAIN}.csr -signkey ${KEYTMP}/${NGINX_ECOM_DOMAIN}.key -out ${KEYTMP}/${NGINX_ECOM_DOMAIN}.crt
+  openssl pkcs12 -export -in ${KEYTMP}/${NGINX_ECOM_DOMAIN}.crt -inkey ${KEYTMP}/${NGINX_ECOM_DOMAIN}.key -out ${KEYTMP}/${NGINX_ECOM_DOMAIN_P12} -password pass:notasecret
+  openssl pkcs12 -in ${KEYTMP}/${NGINX_ECOM_DOMAIN_P12} -passin pass:notasecret -nocerts -nodes | openssl rsa > ${KEYTMP}/${NGINX_ECOM_DOMAIN}_private.pem
+  openssl rsa -in ${KEYTMP}/${NGINX_ECOM_DOMAIN}_private.pem -passin pass:notasecret -pubout -passout pass:notasecret > ${KEYTMP}/${NGINX_ECOM_DOMAIN}_public.pem
   cp ${KEYTMP}/${NGINX_ECOM_DOMAIN_P12} ${KEY_P12_PATH}
 
-  OAPUBKEY=$(<${KEYTMP}/public.pem)
+  OAPUBKEY=$(<${KEYTMP}/${NGINX_ECOM_DOMAIN}_public.pem)
   export OAPUBKEY=${OAPUBKEY}
   echo "Created OAPUBKEY"
 }
 
 generateoasql() {
-  cat << EOF >> ${WORKDIR}/sql/oa2client.sql
+  echo "In: ${BASH_SOURCE} ${FUNCNAME[0]}"
+
+  cat << EOF > ${WORKDIR}/sql/oa2client.sql
+  DELETE FROM xt.oa2client WHERE oa2client_client_x509_pub_cert='${OAPUBKEY}';
+
   INSERT INTO xt.oa2client(oa2client_client_id, oa2client_client_secret, oa2client_client_name, \
   oa2client_client_email, oa2client_client_web_site, oa2client_client_type, oa2client_active, \
   oa2client_issued, oa2client_delegated_access, oa2client_client_x509_pub_cert, oa2client_org) \
-  SELECT 'xTupleCommerceSite' AS oa2client_client_id, xt.uuid_generate_v4() AS oa2client_client_secret, \
+  SELECT 'xTupleCommerceID' AS oa2client_client_id, xt.uuid_generate_v4() AS oa2client_client_secret, \
   '${NGINX_ECOM_DOMAIN}' AS oa2client_client_name, '${ECOMM_ADMIN_EMAIL}' AS oa2client_client_email, \
   '${ERP_SITE_URL}' AS oa2client_client_web_site, 'jwt bearer' AS oa2client_client_type, TRUE AS oa2client_active,  \
-  now() AS oa2client_issued , TRUE AS oa2client_delegated_access, '${OAPUBKEY}' AS oa2client_client_x509_pub_cert, current_database()
-  AS  oa2client_org
+  now() AS oa2client_issued , TRUE AS oa2client_delegated_access, '${OAPUBKEY}' AS oa2client_client_x509_pub_cert, current_database() \
+  AS  oa2client_org \
   WHERE NOT EXISTS ( SELECT 1 FROM xt.oa2client WHERE oa2client_client_x509_pub_cert='${OAPUBKEY}');
+EOF
+
+  cat << EOF > ${WORKDIR}/sql/xd_site.sql
+  DELETE FROM xdruple.xd_site;
+  INSERT INTO xdruple.xd_site(xd_site_name, xd_site_url, xd_site_notes) \
+  SELECT '${ERP_APPLICATION}','http://${DOMAIN}','ecomm site' \
+  WHERE NOT EXISTS (SELECT 1 FROM xdruple.xd_site WHERE xd_site_name = '${ERP_APPLICATION}' AND xd_site_url='http://${DOMAIN}' AND xd_site_notes='ecomm site');
 EOF
 }
 
@@ -432,18 +414,262 @@ setup_xtuplecommerce_db() {
   fi
 }
 
+config_mwc_scripts() {
+  echo "In: ${BASH_SOURCE} ${FUNCNAME[0]}"
+if [[ -z $NGINX_PORT ]]; then
+export NGINX_PORT=8443
+echo "Using port 8443 for Node.js https requests"
+fi
+
+if [[ -z $PGPORT ]]; then
+export PGPORT=5432
+echo "Using port 5432 for PostgreSQL"
+fi
+
+    if [ ! -f /opt/xtuple/$MWC_VERSION/"$ERP_DATABASE_NAME"/xtuple/node-datasource/sample_config.js ]; then
+        log "Hrm, sample_config.js doesn't exist.. something went wrong. check the output/log and try again"
+        do_exit
+    fi
+
+    export XTDIR=/opt/xtuple/$MWC_VERSION/"$ERP_DATABASE_NAME"/xtuple
+
+    sudo rm -rf /etc/xtuple/$MWC_VERSION/"$ERP_DATABASE_NAME"
+    log_exec sudo mkdir -p /etc/xtuple/$MWC_VERSION/"$ERP_DATABASE_NAME"/private
+
+    # setup encryption details
+    log_exec sudo touch /etc/xtuple/$MWC_VERSION/"$ERP_DATABASE_NAME"/private/salt.txt
+    log_exec sudo touch /etc/xtuple/$MWC_VERSION/"$ERP_DATABASE_NAME"/private/encryption_key.txt
+    log_exec sudo chown -R ${DEPLOYER_NAME}.${DEPLOYER_NAME} /etc/xtuple/$MWC_VERSION/"$ERP_DATABASE_NAME"
+    # temporarily so we can cat to them since bash is being a bitch about quoting the trim string below
+    log_exec sudo chmod 777 /etc/xtuple/$MWC_VERSION/"$ERP_DATABASE_NAME"/private/encryption_key.txt
+    log_exec sudo chmod 777 /etc/xtuple/$MWC_VERSION/"$ERP_DATABASE_NAME"/private/salt.txt
+
+    cat /dev/urandom | tr -dc '0-9a-zA-Z!@#$%^&*_+-'| head -c 64 > /etc/xtuple/$MWC_VERSION/"$ERP_DATABASE_NAME"/private/salt.txt
+    cat /dev/urandom | tr -dc '0-9a-zA-Z!@#$%^&*_+-'| head -c 64 > /etc/xtuple/$MWC_VERSION/"$ERP_DATABASE_NAME"/private/encryption_key.txt
+
+    log_exec sudo chmod 660 /etc/xtuple/$MWC_VERSION/"$ERP_DATABASE_NAME"/private/encryption_key.txt
+    log_exec sudo chmod 660 /etc/xtuple/$MWC_VERSION/"$ERP_DATABASE_NAME"/private/salt.txt
+
+    log_exec sudo openssl genrsa -des3 -out /etc/xtuple/$MWC_VERSION/"$ERP_DATABASE_NAME"/private/server.key -passout pass:xtuple 4096
+    log_exec sudo openssl rsa -in /etc/xtuple/$MWC_VERSION/"$ERP_DATABASE_NAME"/private/server.key -passin pass:xtuple -out /etc/xtuple/$MWC_VERSION/"$ERP_DATABASE_NAME"/private/key.pem -passout pass:xtuple
+    log_exec sudo openssl req -batch -new -key /etc/xtuple/$MWC_VERSION/"$ERP_DATABASE_NAME"/private/key.pem -out /etc/xtuple/$MWC_VERSION/"$ERP_DATABASE_NAME"/private/server.csr -subj '/CN='$(hostname)
+    log_exec sudo openssl x509 -req -days 365 -in /etc/xtuple/$MWC_VERSION/"$ERP_DATABASE_NAME"/private/server.csr -signkey /etc/xtuple/$MWC_VERSION/"$ERP_DATABASE_NAME"/private/key.pem -out /etc/xtuple/$MWC_VERSION/"$ERP_DATABASE_NAME"/private/server.crt
+
+    log_exec sudo cp /opt/xtuple/$MWC_VERSION/"$ERP_DATABASE_NAME"/xtuple/node-datasource/sample_config.js /etc/xtuple/$MWC_VERSION/"$ERP_DATABASE_NAME"/config.js
+
+    log_exec sudo sed -i  "/encryptionKeyFile/c\      encryptionKeyFile: \"/etc/xtuple/$MWC_VERSION/"$ERP_DATABASE_NAME"/private/encryption_key.txt\"," /etc/xtuple/$MWC_VERSION/"$ERP_DATABASE_NAME"/config.js
+    log_exec sudo sed -i  "/keyFile/c\      keyFile: \"/etc/xtuple/$MWC_VERSION/"$ERP_DATABASE_NAME"/private/key.pem\"," /etc/xtuple/$MWC_VERSION/"$ERP_DATABASE_NAME"/config.js
+    log_exec sudo sed -i  "/certFile/c\      certFile: \"/etc/xtuple/$MWC_VERSION/"$ERP_DATABASE_NAME"/private/server.crt\"," /etc/xtuple/$MWC_VERSION/"$ERP_DATABASE_NAME"/config.js
+    log_exec sudo sed -i  "/saltFile/c\      saltFile: \"/etc/xtuple/$MWC_VERSION/"$ERP_DATABASE_NAME"/private/salt.txt\"," /etc/xtuple/$MWC_VERSION/"$ERP_DATABASE_NAME"/config.js
+
+    log "Using database $ERP_DATABASE_NAME"
+    log_exec sudo sed -i  "/databases:/c\      databases: [\"$ERP_DATABASE_NAME\"]," /etc/xtuple/$MWC_VERSION/"$ERP_DATABASE_NAME"/config.js
+    log_exec sudo sed -i  "/port: 5432/c\      port: $PGPORT," /etc/xtuple/$MWC_VERSION/"$ERP_DATABASE_NAME"/config.js
+
+    log_exec sudo sed -i  "/port: 8443/c\      port: $NGINX_PORT," /etc/xtuple/$MWC_VERSION/"$ERP_DATABASE_NAME"/config.js
+
+    log_exec sudo chown -R ${DEPLOYER_NAME}.${DEPLOYER_NAME} /etc/xtuple
+
+    if [ $DISTRO = "ubuntu" ]; then
+        case "$CODENAME" in
+            "trusty") ;&
+            "utopic")
+                log "Creating upstart script using filename /etc/init/xtuple-$ERP_DATABASE_NAME.conf"
+                # create the upstart script
+                sudo cp $WORKDIR/templates/ubuntu-upstart /etc/init/xtuple-"$ERP_DATABASE_NAME".conf
+                log_exec sudo bash -c "echo \"chdir /opt/xtuple/$MWC_VERSION/\"$ERP_DATABASE_NAME\"/xtuple/node-datasource\" >> /etc/init/xtuple-\"$ERP_DATABASE_NAME\".conf"
+                log_exec sudo bash -c "echo \"exec ./main.js -c /etc/xtuple/$MWC_VERSION/\"$ERP_DATABASE_NAME\"/config.js > /var/log/node-datasource-$MWC_VERSION-\"$ERP_DATABASE_NAME\".log 2>&1\" >> /etc/init/xtuple-\"$ERP_DATABASE_NAME\".conf"
+                ;;
+            "vivid") ;&
+            "xenial")
+                log "Creating systemd service unit using filename /etc/systemd/system/xtuple-$ERP_DATABASE_NAME.service"
+                sudo cp $WORKDIR/templates/xtuple-systemd.service /etc/systemd/system/xtuple-"$ERP_DATABASE_NAME".service
+                log_exec sudo bash -c "echo \"User=${DEPLOYER_NAME}\" >> /etc/systemd/system/xtuple-\"$ERP_DATABASE_NAME\".service"
+                log_exec sudo bash -c "echo \"Group=${DEPLOYER_NAME}\" >> /etc/systemd/system/xtuple-\"$ERP_DATABASE_NAME\".service"
+                log_exec sudo bash -c "echo \"SyslogIdentifier=xtuple-$ERP_DATABASE_NAME\" >> /etc/systemd/system/xtuple-\"$ERP_DATABASE_NAME\".service"
+                log_exec sudo bash -c "echo \"ExecStart=/usr/local/bin/node /opt/xtuple/$MWC_VERSION/\"$ERP_DATABASE_NAME\"/xtuple/node-datasource/main.js -c /etc/xtuple/$MWC_VERSION/\"$ERP_DATABASE_NAME\"/config.js\" >> /etc/systemd/system/xtuple-\"$ERP_DATABASE_NAME\".service"
+                ;;
+        esac
+    elif [ $DISTRO = "debian" ]; then
+        case "$CODENAME" in
+            "wheezy")
+                log "Creating debian init script using filename /etc/init.d/xtuple-$ERP_DATABASE_NAME"
+                # create the weird debian sysvinit style script
+                sudo cp $WORKDIR/templates/debian-init /etc/init.d/xtuple-"$ERP_DATABASE_NAME"
+                log_exec sudo sed -i  "/APP_DIR=/c\APP_DIR=\"/opt/xtuple/$MWC_VERSION/"$ERP_DATABASE_NAME"/xtuple/node-datasource\"" /etc/init.d/xtuple-"$ERP_DATABASE_NAME"
+                log_exec sudo sed -i  "/CONFIG_FILE=/c\CONFIG_FILE=\"/etc/xtuple/$MWC_VERSION/"$ERP_DATABASE_NAME"/config.js\"" /etc/init.d/xtuple-"$ERP_DATABASE_NAME"
+                # should be +x from git but just in case...
+                sudo chmod +x /etc/init.d/xtuple-"$ERP_DATABASE_NAME"
+                ;;
+            "jessie")
+                log "Creating systemd service unit using filename /etc/systemd/system/xtuple-$ERP_DATABASE_NAME.service"
+                sudo cp $WORKDIR/templates/xtuple-systemd.service /etc/systemd/system/xtuple-"$ERP_DATABASE_NAME".service
+                log_exec sudo bash -c "echo \"SyslogIdentifier=xtuple-$ERP_DATABASE_NAME\" >> /etc/systemd/system/xtuple-\"$ERP_DATABASE_NAME\".service"
+                log_exec sudo bash -c "echo \"ExecStart=/usr/local/bin/node /opt/xtuple/$MWC_VERSION/\"$ERP_DATABASE_NAME\"/xtuple/node-datasource/main.js -c /etc/xtuple/$MWC_VERSION/\"$ERP_DATABASE_NAME\"/config.js\" >> /etc/systemd/system/xtuple-\"$ERP_DATABASE_NAME\".service"
+                ;;
+        esac
+    else
+        log "Seriously? We made it all the way to where I need to write out the init script and suddenly I can't detect your distro -> $DISTRO codename -> $CODENAME"
+        do_exit
+    fi
+}
+
+get_environment() {
+  upgrade_database
+
+  DEPLOYER_NAME=${DEPLOYER_NAME}
+
+  ERP_DATABASE_NAME=${DATABASE}
+  ERP_ISS="xTupleCommerceID"
+
+  SITE_TEMPLATE="flywheel"
+  ERP_APPLICATION="xTupleCommerce"
+  ERP_DEBUG="true"
+  WENVIRONMENT="stage"
+
+  DOMAIN=${SITE_TEMPLATE}.xd
+  DOMAIN_ALIAS=${SITE_TEMPLATE}.xtuple.net
+  HTTP_AUTH_NAME="Developer"
+  HTTP_AUTH_PASS="ChangeMe"
+  ERP_HOST=https://${DOMAIN}:8443
+
+  : ${DIALOG_OK=0}
+  : ${DIALOG_CANCEL=1}
+  : ${DIALOG_HELP=2}
+  : ${DIALOG_EXTRA=3}
+  : ${DIALOG_ITEM_HELP=4}
+  : ${DIALOG_ESC=255}
+
+  dialog --ok-label "Submit" \
+            --backtitle "xTuple Web Client Setup" \
+            --title "Configuration" \
+            --form "Configure Web Client Environment" \
+  0 0 0 \
+           "ERP Host:"  1 1          "${ERP_HOST}"   1 20 50 0 \
+       "ERP Database:"  2 1 "${ERP_DATABASE_NAME}"   2 20 50 0 \
+     "OAuth Token Id:"  3 1           "${ERP_ISS}"   3 20 50 0 \
+        "Application:"  4 1   "${ERP_APPLICATION}"   4 20 50 0 \
+           "Web Repo:"  5 1     "${SITE_TEMPLATE}"   5 20 50 0 \
+          "ERP Debug:"  6 1         "${ERP_DEBUG}"   6 20 50 0 \
+        "Environment:"  7 1      "${WENVIRONMENT}"   7 20 50 0 \
+             "Domain:"  8 1            "${DOMAIN}"   8 20 50 0 \
+       "Domain Alias:"  9 1      "${DOMAIN_ALIAS}"   9 20 50 0 \
+     "HTTP Auth User:" 10 1    "${HTTP_AUTH_NAME}"  10 20 50 0 \
+     "HTTP Auth Pass:" 11 1    "${HTTP_AUTH_PASS}"  11 20 50 0 \
+      "Deployer Name:" 12 0     "${DEPLOYER_NAME}"  12 20 50 0 \
+       "Github Token:" 13 0      "${GITHUB_TOKEN}"  13 20 50 0 \
+  3>&1 1>&2 2>&3 2> xtuple_webclient.ini
+  return_value=$?
+
+  case $return_value in
+    $DIALOG_OK)
+
+  read -d "\n" ERP_HOST ERP_DATABASE_NAME ERP_ISS ERP_APPLICATION SITE_TEMPLATE ERP_DEBUG WENVIRONMENT DOMAIN DOMAIN_ALIAS HTTP_AUTH_NAME HTTP_AUTH_PASS DEPLOYER_NAME GITHUB_TOKEN <<<$(cat xtuple_webclient.ini);
+
+  export ERP_HOST=${ERP_HOST}
+  export ERP_DATABASE_NAME=${ERP_DATABASE_NAME}
+  export ERP_ISS=${ERP_ISS}
+  export ERP_APPLICATION=${ERP_APPLICATION}
+  export SITE_TEMPLATE=${SITE_TEMPLATE}
+  export ERP_DEBUG=${ERP_DEBUG}
+  export WENVIRONMENT=${WENVIRONMENT}
+  export DOMAIN=${DOMAIN}
+  export DOMAIN_ALIAS=${DOMAIN_ALIAS}
+  export HTTP_AUTH_NAME=${HTTP_AUTH_NAME}
+  export HTTP_AUTH_PASS=${HTTP_AUTH_PASS}
+  export DEPLOYER_NAME=${DEPLOYER_NAME}
+  export GITHUB_TOKEN=${GITHUB_TOKEN}
+  export ERP_SITE_URL=${DOMAIN}
+  export NGINX_ECOM_DOMAIN=${DOMAIN}
+  export ECOMM_ADMIN_EMAIL=admin@${DOMAIN}
+  ;;
+    $DIALOG_CANCEL)
+   main_menu
+  ;;
+    $DIALOG_HELP)
+      echo "Help pressed.";;
+    $DIALOG_EXTRA)
+      echo "Extra button pressed.";;
+    $DIALOG_ITEM_HELP)
+      echo "Item-help button pressed.";;
+    $DIALOG_ESC)
+     main_menu
+      ;;
+  esac
+}
+
+get_xtc_environment() {
+  #get_environment
+
+  ECOMM_EMAIL=admin@${DOMAIN}
+  ECOMM_SITE_NAME='xTupleCommerceSite'
+  ECOMM_DB_NAME=${ERP_DATABASE_NAME}_xtc
+  ECOMM_DB_USERNAME="${ERP_DATABASE_NAME}_admin"
+  ECOMM_DB_USERPASS="ChangeMe"
+
+  : ${DIALOG_OK=0}
+  : ${DIALOG_CANCEL=1}
+  : ${DIALOG_HELP=2}
+  : ${DIALOG_EXTRA=3}
+  : ${DIALOG_ITEM_HELP=4}
+  : ${DIALOG_ESC=255}
+
+  dialog --ok-label "Submit" \
+            --backtitle "xTupleCommerce Setup" \
+            --title "Configuration" \
+            --form "Configure xTupleCommerce Environment" \
+  0 0 0 \
+           "Site Email:"    1 1              "${ECOMM_EMAIL}"   1 20 50 0 \
+       "Site Name:"         2 1          "${ECOMM_SITE_NAME}"   2 20 50 0 \
+   "Ecomm Database Name:"   3 1            "${ECOMM_DB_NAME}"   3 20 50 0 \
+        "Site DB Pg User:"  4 1        "${ECOMM_DB_USERNAME}"   4 20 50 0 \
+        "Site DB Pg Pass:"  5 1        "${ECOMM_DB_USERPASS}"   5 20 50 0 \
+  3>&1 1>&2 2>&3 2> xtuple_commerce.ini
+  return_value=$?
+
+  case $return_value in
+    $DIALOG_OK)
+      read -d "\n" ECOMM_EMAIL ECOMM_SITE_NAME ECOMM_DB_NAME ECOMM_DB_USERNAME ECOMM_DB_USERPASS <<<$(cat xtuple_commerce.ini);
+
+      export ECOMM_EMAIL=${ECOMM_EMAIL}
+      export ECOMM_SITE_NAME=${ECOMM_SITE_NAME}
+      export ECOMM_DB_NAME=${ECOMM_DB_NAME}
+      export ECOMM_DB_USERNAME=${ECOMM_DB_USERNAME}
+      export ECOMM_DB_USERPASS=${ECOMM_DB_USERPASS}
+      export ECOMM_ADMIN_EMAIL=${ECOM_EMAIL}
+      ;;
+    $DIALOG_CANCEL)
+      main_menu
+      ;;
+    $DIALOG_HELP)
+      echo "Help pressed.";;
+    $DIALOG_EXTRA)
+      echo "Extra button pressed.";;
+    $DIALOG_ITEM_HELP)
+      echo "Item-help button pressed.";;
+    $DIALOG_ESC)
+    main_menu
+      ;;
+  esac
+}
+
 install_mwc() {
   echo "In: ${BASH_SOURCE} ${FUNCNAME[0]}"
+  unset APPLY_FOUNDATION
 
-  cd $WORKDIR
+  if [[ $ISXTAU ]]; then
+    get_environment
 
-  if [ ! -d "/opt/xtuple/${MWC_VERSION}" ]; then
-    echo "Directory /opt/xtuple/${MWC_VERSION} does not exist."
-
-    sudo mkdir -p /opt/xtuple/${MWC_VERSION}
-    echo "Directory /opt/xtuple/${MWC_VERSION} created"
-  else
-    echo "Directory /opt/xtuple/${MWC_VERSION} exists"
+    psql -At -U postgres -l | grep -q ${ERP_DATABASE_NAME} 2>/dev/null
+    RET=$?
+    if [[ $RET == 0 ]]; then
+      echo "Database ${ERP_DATABASE_NAME} already exists, good!"
+      export ERP_DATABASE=${ERP_DATABASE_NAME}
+    else
+      echo "Creating ${ERP_DATABASE_NAME}!"
+      createdb -U admin -p ${PGPORT} ${ERP_DATABASE_NAME}
+      psql -U admin -p ${PGPORT} ${ERP_DATABASE_NAME} -c "CREATE EXTENSION plv8;"
+    fi
   fi
 
   cd $WORKDIR
@@ -451,96 +677,180 @@ install_mwc() {
     echo "Looking for ${WORKDIR}/${ERP_MWC_TARBALL}"
     echo "Not Found! This is kinda important..."
     exit 2
-  else
-    ERPTARDIR=$(tar -tzf ${ERP_MWC_TARBALL} | head -1 | cut -f1 -d"/")
+  fi
 
-    if [ ! -d "/etc/xtuple/${MWC_VERSION}" ]; then
-      echo "Directory /etc/xtuple/${MWC_VERSION} DOES NOT exists."
+  ERPTARDIR=$(tar -tzf ${ERP_MWC_TARBALL} | head -1 | cut -f1 -d"/")
 
-      sudo mkdir -p /etc/xtuple/${MWC_VERSION}
-      echo "Created Directory /etc/xtuple/${MWC_VERSION}"
-    else
-      echo "${MWC_VERSION} Directory exists"
-    fi
-
-    echo "Extracting ${ERP_MWC_TARBALL}"
+  if [ -z "$(ls -A ${ERPTARDIR})" ]; then
+    echo "${ERPTARDIR} is empty or does not exist\nExtracting ${ERP_MWC_TARBALL}"
     tar xf ${ERP_MWC_TARBALL}
-    if [[ -d "/opt/xtuple/${MWC_VERSION}/xtupleerp" ]]; then
-      echo "Moving existing xtupleerp directory to /opt/xtuple/${MWC_VERSION}/xtupleerp-${WORKDATE}"
-      sudo mv /opt/xtuple/${MWC_VERSION}/xtupleerp /opt/xtuple/${MWC_VERSION}/xtupleerp-${WORKDATE}
-    fi
+    THIS_ERP_VER=$(cd ${ERPTARDIR}/xtuple && git describe --abbrev=0 --tags)
+    MWC_VERSION=${THIS_ERP_VER}
+  else
+    echo "${ERPTARDIR} Exists and is not empty."
+    THIS_ERP_VER=$(cd ${ERPTARDIR}/xtuple && git describe --abbrev=0 --tags)
+    MWC_VERSION=${THIS_ERP_VER}
+  fi
 
-    sudo cp -R ${WORKDIR}/${ERPTARDIR} /opt/xtuple/${MWC_VERSION}/xtupleerp
-    sudo chown -R xtuple:xtuple /opt/xtuple/${MWC_VERSION}
-    sudo cp -R ${WORKDIR}/${ERPTARDIR}/etc/init /etc
-    sudo cp -R ${WORKDIR}/${ERPTARDIR}/etc/xtuple /etc/xtuple/${MWC_VERSION}/xtupleerp
-    sudo chown -R xtuple:xtuple /etc/xtuple
+  if [ ! -d "/etc/xtuple/${MWC_VERSION}" ]; then
+    echo "Directory /etc/xtuple/${MWC_VERSION} DOES NOT exists."
+    sudo mkdir -p /etc/xtuple/${MWC_VERSION}
+    echo "Created Directory /etc/xtuple/${MWC_VERSION}"
+  else
+    echo "${MWC_VERSION} Directory exists"
+  fi
 
-    HAS_XTEXT=$(psql -At -U admin ${ERP_DATABASE_NAME} -c "SELECT count(*)
-                 FROM pg_catalog.pg_class c
-                 JOIN pg_namespace n ON n.oid= c.relnamespace
-                WHERE nspname = 'xt' AND relname = 'ext';")
-    if [[ $HAS_XTEXT == 1 ]]; then
-      echo "${ERP_DATABASE_NAME} Has ext"
-      EXT_LOCATIONS=$(psql -At -U admin ${ERP_DATABASE_NAME} -c "SELECT ext_location from xt.ext WHERE ext_location NOT IN ('/core-extensions','/private-extensions')")
-      echo "$EXT_LOCATIONS"
-      echo "Since xt.ext exists, we can try to preload things that may not exist.  There may be exceptions to doing this."
-      psql -U admin -d xtupleerp -f ${WORKDIR}/sql/preload.sql
+  if [[ -d "/opt/xtuple/${MWC_VERSION}/${ERP_DATABASE_NAME}" ]]; then
+    echo "Moving existing ${ERP_DATABASE_NAME} directory to /opt/xtuple/${MWC_VERSION}/${ERP_DATABASE_NAME}-${WORKDATE}"
+    sudo mv /opt/xtuple/${MWC_VERSION}/${ERP_DATABASE_NAME} /opt/xtuple/${MWC_VERSION}/${ERP_DATABASE_NAME}-${WORKDATE}
 
-      sudo su - xtuple -c "cd /opt/xtuple/${MWC_VERSION}/xtupleerp/xtuple && ./scripts/build_app.js -c /etc/xtuple/${MWC_VERSION}/xtupleerp/config.js"
+    echo "Copying ${WORKDIR}/${ERPTARDIR} to /opt/xtuple/${MWC_VERSION}/${ERP_DATABASE_NAME}"
+    sudo cp -R ${WORKDIR}/${ERPTARDIR} /opt/xtuple/${MWC_VERSION}/${ERP_DATABASE_NAME}
+    sudo chown -R ${DEPLOYER_NAME}:${DEPLOYER_NAME} /opt/xtuple/${MWC_VERSION}
+  else
+    echo "Creating /opt/xtuple/${MWC_VERSION}"
+    sudo mkdir -p /opt/xtuple/${MWC_VERSION}
+    echo "Copying ${WORKDIR}/${ERPTARDIR} to /opt/xtuple/${MWC_VERSION}"
+    sudo cp -R ${WORKDIR}/${ERPTARDIR} /opt/xtuple/${MWC_VERSION}/${ERP_DATABASE_NAME}
+    echo "Setting owner to ${DEPLOYER_NAME} on /opt/xtuple/${MWC_VERSION}"
+    sudo chown -R ${DEPLOYER_NAME}:${DEPLOYER_NAME} /opt/xtuple/${MWC_VERSION}
+  fi
 
-      RET=$?
-      if [[ $RET != 0 ]]; then
-        echo "BuildApp Died, So do we..."
-        exit 2
-      fi
-    else
-      echo "${ERP_DATABASE_NAME} Does Not have xt.ext"
-      sudo su - xtuple -c "cd /opt/xtuple/${MWC_VERSION}/xtupleerp/xtuple && ./scripts/build_app.js -c /etc/xtuple/${MWC_VERSION}/xtupleerp/config.js"
+  config_mwc_scripts
 
-      echo "now that xt.ext exists, we can run preload.sql so that we don't need to run build_app for all extensions over and over..."
-      echo "There may be exceptions to this."
-      psql -U admin -d xtupleerp -f ${WORKDIR}/sql/preload.sql
-      echo "Running build_app for the extensions we preloaded into xt.ext"
-      sudo su - xtuple -c "cd /opt/xtuple/${MWC_VERSION}/xtupleerp/xtuple && ./scripts/build_app.js -c /etc/xtuple/${MWC_VERSION}/xtupleerp/config.js"
+  HAS_XTEXT=$(psql -At -U admin ${ERP_DATABASE_NAME} -c "SELECT count(*)
+               FROM pg_catalog.pg_class c
+               JOIN pg_namespace n ON n.oid= c.relnamespace
+              WHERE nspname = 'xt' AND relname = 'ext';")
 
-      RET=$?
-      if [[ $RET != 0 ]]; then
-        echo "BuildApp Died, So do we..."
-        exit 2
-      fi
-    fi
+  export XTAPP=$(psql -At -U admin -p ${PGPORT} ${ERP_DATABASE_NAME} -c "SELECT fetchmetrictext('Application');")
+  if [[ ${XTAPP} == "PostBooks" ]]; then
+    APPLY_FOUNDATION='-f'
+  fi
 
-    echo "Lets try starting this..."
-    sudo service xtuple-xtupleerp stop
-    sudo service xtuple-xtupleerp start
+  export XTVER=$(psql -At -U admin -p ${PGPORT} ${ERP_DATABASE_NAME} -c "SELECT fetchmetrictext('ServerVersion');")
+
+  if [[ $HAS_XTEXT == 1 ]]; then
+    echo "${ERP_DATABASE_NAME} Has ext"
+    EXT_LOCATIONS=$(psql -At -U admin ${ERP_DATABASE_NAME} -c "SELECT ext_location from xt.ext WHERE ext_location NOT IN ('/core-extensions','/private-extensions')")
+    echo "$EXT_LOCATIONS"
+    echo "Since xt.ext exists, we can try to preload things that may not exist.  There may be exceptions to doing this."
+    psql -U admin -d xtupleerp -f ${WORKDIR}/sql/preload.sql
+
+    log_exec sudo su - ${DEPLOYER_NAME}  -c "cd /opt/xtuple/${MWC_VERSION}/${ERP_DATABASE_NAME}/xtuple && ./scripts/build_app.js -c /etc/xtuple/${MWC_VERSION}/xtupleerp/config.js ${APPLY_FOUNDATION}" 2>&1 | tee buildapp_output.log
     RET=$?
     if [[ $RET -ne 0 ]]; then
-      echo "Something went wrong trying to run"
-      echo "sudo service xtuple-xtupleerp start"
-    fi
-
-    echo "Updating the xTupleCommerce Login/Password"
-    psql -U xtuplecommerce -d xtuplecommerce -f ${WORKDIR}/sql/setadmin.sql
-
-    echo "Loading in the oa2client information"
-    if [[ ! -f ${WORKDIR}/sql/oa2client.sql ]]; then
-      echo "oa2client.sql not found. Generating it."
-      generate_p12
-      generateoasql
-      psql -U admin -d xtupleerp -f ${WORKDIR}/sql/oa2client.sql
+      msgbox "$(cat buildapp_output.log)"
+      main_menu
     else
-      echo "oa2client.sql found. loading it."
-      psql -U admin -d xtupleerp -f ${WORKDIR}/sql/oa2client.sql
+      msgbox "$(cat buildapp_output.log)"
     fi
 
-    echo "Loading in the xd.site information"
-    psql -U admin -d xtupleerp -f ${WORKDIR}/sql/xd_site.sql
+  else
+    echo "${ERP_DATABASE_NAME} Does Not have xt.ext"
+    log_exec sudo su - ${DEPLOYER_NAME}  -c "cd /opt/xtuple/${MWC_VERSION}/${ERP_DATABASE_NAME}/xtuple && ./scripts/build_app.js -c /etc/xtuple/${MWC_VERSION}/xtupleerp/config.js ${APPLY_FOUNDATION}" 2>&1 | tee buildapp_output.log
+    RET=$?
+    if [[ $RET -ne 0 ]]; then
+      msgbox "$(cat buildapp_output.log)"
+      main_menu
+    else
+      msgbox "$(cat buildapp_output.log)"
+    fi
 
-    # (echo '127.0.0.1 '${NGINX_ECOM_DOMAIN} ${NGINX_SITE}'') | sudo tee -a /etc/hosts >/dev/null
-    echo "Setting the local /etc/hosts file for 127.0.0.1 xtuple.xd"
-    (echo '127.0.0.1 xtuple.xd') | sudo tee -a /etc/hosts >/dev/null
+    # We can check for the private extensions dir...
+    if [ -d /opt/xtuple/${MWC_VERSION}/${ERP_DATABASE_NAME}/private-extensions ] && [ ${APPLY_FOUNDATION} == '-f' ]; then
+      log_exec sudo su - ${DEPOLYER_NAME} -c "cd /opt/xtuple/${MWC_VERSION}/${ERP_DATABASE_NAME}/xtuple && ./scripts/build_app.js -c /etc/xtuple/$MWC_VERSION/${ERP_DATABASE_NAME}/config.js -e ../private-extensions/source/inventory ${APPLY_FOUNDATION}" 2>&1 | tee buildapp_output.log
+      RET=$?
+      if [[ $RET -ne 0 ]]; then
+        msgbox "$(cat buildapp_output.log)"
+        main_menu
+      else
+        msgbox "$(cat buildapp_output.log)"
+      fi
+    else
+      msgbox "Private-Extensions does not exists. You need to contact xTuple for access on github."
+      main_menu
+    fi
+
+    echo " NEED STATUS HERE if build app succeeded or not, then load preload.sql..."
+    echo "now that xt.ext exists, we can run preload.sql so that we don't need to run build_app for all extensions over and over..."
+    echo "There may be exceptions to this."
+    psql -U admin -p ${PGPORT} -d ${ERP_DATABASE_NAME} -f ${WORKDIR}/sql/preload.sql
+    echo "Running build_app for the extensions we preloaded into xt.ext"
+
+    log_exec sudo su - ${DEPLOYER_NAME} -c "cd /opt/xtuple/${MWC_VERSION}/${ERP_DATABASE_NAME}/xtuple && ./scripts/build_app.js -c /etc/xtuple/${MWC_VERSION}/${ERP_DATABASE_NAME}/config.js" 2>&1 | tee buildapp_output.log
+    RET=$?
+    if [[ $RET -ne 0 ]]; then
+      msgbox "$(cat buildapp_output.log)"
+      main_menu
+    else
+      msgbox "$(cat buildapp_output.log)"
+    fi
   fi
+
+  echo "Lets try starting this..."
+  sudo service xtuple-xtupleerp stop
+  sudo service xtuple-xtupleerp start
+  RET=$?
+  if [[ $RET -ne 0 ]]; then
+    echo "Something went wrong trying to run"
+    echo "sudo service xtuple-xtupleerp start"
+  fi
+
+  echo "Updating the xTupleCommerce Login/Password"
+  psql -U xtuplecommerce -d xtuplecommerce -f ${WORKDIR}/sql/setadmin.sql
+
+  echo "Loading in the oa2client information"
+  if [[ ! -f ${WORKDIR}/sql/oa2client.sql ]]; then
+    echo "oa2client.sql not found. Generating it."
+    generate_p12
+    generateoasql
+    psql -U admin -d xtupleerp -f ${WORKDIR}/sql/oa2client.sql
+  else
+    echo "oa2client.sql found. loading it."
+    psql -U admin -d xtupleerp -f ${WORKDIR}/sql/oa2client.sql
+  fi
+
+  echo "Loading in the xd.site information"
+  psql -U admin -d xtupleerp -f ${WORKDIR}/sql/xd_site.sql
+}
+
+load_oauth_site() {
+  echo "In: ${BASH_SOURCE} ${FUNCNAME[0]}"
+  echo "Loading in the oa2client information"
+  generate_p12
+  generateoasql
+
+  psql -U admin -p ${PGPORT} -d ${ERP_DATABASE_NAME} -f ${WORKDIR}/sql/oa2client.sql
+  psql -U admin -p ${PGPORT} -d ${ERP_DATABASE_NAME} -f ${WORKDIR}/sql/xd_site.sql
+}
+
+stop_mwc() {
+  # Let's stop this service if running.
+  echo "Stopping any node.js for this instance"
+  sudo service xtuple-${ERP_DATABASE_NAME} stop
+}
+
+start_mwc() {
+  echo "Lets try starting this..."
+  sudo service xtuple-${ERP_DATABASE_NAME} stop
+  sudo service xtuple-${ERP_DATABASE_NAME} start
+  RET=$?
+  if [[ $RET -ne 0 ]]; then
+    echo "Something went wrong trying to run"
+    echo "sudo service xtuple-${ERP_DATABASE_NAME} start"
+  else
+    msgbox "service xtuple-${ERP_DATABASE_NAME} started successfully"
+  fi
+}
+
+config_xtc() {
+  echo "Updating the xTupleCommerce Login/Password"
+  psql -U xtuplecommerce -d xtuplecommerce -f ${WORKDIR}/sql/setadmin.sql
+
+  # (echo '127.0.0.1 ${NGINX_ECOM_DOMAIN} ${NGINX_SITE} ) | sudo tee -a /etc/hosts >/dev/null
+  echo "Setting the local /etc/hosts file for 127.0.0.1 xtuple.xd"
+  (echo '127.0.0.1 xtuple.xd') | sudo tee -a /etc/hosts >/dev/null
 }
 
 install_example_gateway() {
@@ -552,18 +862,10 @@ install_example_gateway() {
               WHERE NOT EXISTS (SELECT 1 FROM paymentgateways.gateway WHERE gateway_name = ${GATEWAY_NAME});"
 }
 
-setup_compass() {
+setup_compass() 
+{
   echo "In: ${BASH_SOURCE} ${FUNCNAME[0]}"
-
-  if type -p "compass" > /dev/null; then
-    echo "Found compass"
-  else
-    echo "Need to install compass and ruby dependencies"
-
-    sudo apt-get -q -y install rubygems-integration
-    sudo gem install compass -v 0.12.7
-    sudo gem install bootstrap-sass -v 3.2.0.1
-  fi
+  source ${SCRIPTS_DIR}/ruby.sh
 }
 
 setup_phpnginx() {
@@ -765,6 +1067,153 @@ setup_phpunit() {
   fi
 }
 
+setup_flywheel() {
+  echo "In: ${BASH_SOURCE} ${FUNCNAME[0]}"
+
+  get_environment
+  get_xtc_environment
+  setup_xdruple_nginx
+  setup_compass
+
+  start_mwc
+
+  SITE_ENVS='dev stage live'
+
+  SITE_ENV_TMP_WORK=${WORKING}/xdruple-sites/${ERP_DATABASE_NAME}
+
+  mkdir -p ${SITE_ENV_TMP_WORK}
+
+  SITE_ENV_TMP=${SITE_ENV_TMP_WORK}/${WENVIRONMENT}
+
+  SITE_ROOT=/var/www
+
+  # The site template developer
+  SITE_DEV=xtuple
+
+  SITE_TEMPLATE_TAG=xtau
+
+  SITE_WEBROOT=${SITE_ROOT}/${WENVIRONMENT}
+
+  if [ -n ${NGINX_ECOM_DOMAIN_P12} ]; then
+    #generate_p12
+    #generateoasql
+
+    load_oauth_site
+  else
+    echo "DOMAIN NOT SET-EXITING!"
+    do_exit
+  fi
+
+  KEY_PATH=/var/xtuple/keys
+  sudo mkdir -p ${KEY_PATH}
+
+  ERP_KEY_FILE_PATH=${KEY_PATH}/${NGINX_ECOM_DOMAIN_P12}
+
+  log_exec sudo chown -R ${DEPLOYER_NAME}.${DEPLOYER_NAME} ${SITE_ROOT}
+
+  {
+  echo -e "XXX\n0\nCloning ${SITE_TEMPLATE} to ${SITE_ENV_TMP}\nXXX"
+  log_exec sudo su - ${DEPLOYER_NAME} -c "git clone https://${GITHUB_TOKEN}:x-oauth-basic@github.com/${SITE_DEV}/${SITE_TEMPLATE} ${SITE_ENV_TMP}" 2>/dev/null
+  echo -e "XXX\n10\nCloning ${SITE_TEMPLATE} to ${SITE_ENV_TMP}... Done.\nXXX"
+  sleep 1
+
+  echo -e "XXX\n10\nRunning submodule update\nXXX"
+  log_exec sudo su - ${DEPLOYER_NAME} -c "cd ${SITE_ENV_TMP} && git submodule update --init --recursive" 2>/dev/null
+  echo -e "XXX\n15\nRunning submodule udpate... Done.\nXXX"
+  sleep 1
+
+  echo -e "XXX\n15\nRunning composer install\nXXX"
+  sleep 2
+  # Check for composer token
+  GITHUB_TOKEN=`git config --get github.token`
+  cat << EOF > /home/${DEPLOYER_NAME}/.composer/config.json
+  {
+    "config": {
+      "github-oauth": {
+      "github.com": "$GITHUB_TOKEN" },
+      "process-timeout": 600,
+      "preferred-install": "source",
+      "github-protocols": ["ssh", "https", "git"],
+      "secure-http": false
+    }
+  }
+EOF
+
+  log_exec sudo su - ${DEPLOYER_NAME} -c "cd ${SITE_ENV_TMP} && composer install" 2>/dev/null
+  echo -e "XXX\n30\nRunning composer install... Done\nXXX"
+  sleep 1
+
+  echo -e "XXX\n50\nWriting out environment.xml\nXXX"
+  sleep 2
+  ERP_DATABASE=${ERP_DATABASE_NAME}
+  tee ${SITE_ENV_TMP}/application/config/environment.xml <<EOF
+  <?xml version="1.0" encoding="UTF-8" ?>
+  <environment type="${WENVIRONMENT}"
+               xmlns="https://xdruple.xtuple.com/schema/environment"
+               xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+               xsi:schemaLocation="https://xdruple.xtuple.com/schema/environment schema/environment.xsd">
+    <xtuple host="${ERP_HOST}"
+            database="${ERP_DATABASE}"
+            iss="${ERP_ISS}"
+            key="${ERP_KEY_FILE_PATH}"
+            application="${ERP_APPLICATION}"
+            debug="${ERP_DEBUG}"/>
+  </environment>
+EOF
+
+  echo -e "XXX\n60\nWriting out environment.xml... Done\nXXX"
+  sleep 1
+
+  echo -e "XXX\n60\nCopying ${ERP_KEY_FILE_PATH}\nXXX"
+  sleep 2
+  cp ${KEYTMP}/${NGINX_ECOM_DOMAIN_P12} ${ERP_KEY_FILE_PATH} 2>/dev/null
+  echo -e "XXX\n70\nCopying ${KEYTMP}/${NGINX_ECOM_DOMAIN_P12} to ${ERP_KEY_FILE_PATH}...Done\nXXX"
+  sleep 1
+
+
+  echo -e "XXX\n70\nSetting /etc/hosts\nXXX"
+  sleep 2
+  (echo '127.0.0.1' ${DOMAIN} ${DOMAIN_ALIAS} dev.${DOMAIN_ALIAS} stage.${DOMAIN_ALIAS} live.${DOMAIN_ALIAS}) | sudo tee -a /etc/hosts >/dev/null
+  echo -e "XXX\n80\nSetting /etc/hosts...Done\nXXX"
+  sleep 2
+
+  echo -e "XXX\n80\nMoving WENVIRONMENT=${WENVIRONMENT}\nXXX"
+  log_exec sudo su - ${DEPLOYER_NAME} -c "mv ${SITE_ROOT}/${WENVIRONMENT} ${SITE_ROOT}/${WENVIRONMENT}_${WORKDATE}"
+
+  log_exec sudo su - ${DEPLOYER_NAME} -c "mv ${SITE_ENV_TMP} ${SITE_WEBROOT}"
+
+  echo -e "XXX\n80\nRunning console.php install:drupal\nXXX"
+
+  ( echo ./console.php install:drupal  --db-name=${ECOMM_DB_NAME} --db-pass=${ECOMM_DB_USERPASS}   --db-user=${ECOMM_DB_USERNAME}  --user-pass=${ECOMM_DB_USERPASS}  --site-mail=${ECOMM_EMAIL}  --site-name=${ECOMM_SITE_NAME} )| tee -a ${SITE_WEBROOT}/console_cmd.sh
+
+  log_exec sudo su - ${DEPLOYER_NAME} -c "cd ${SITE_WEBROOT} && ./console.php install:drupal  --db-name=${ECOMM_DB_NAME} --db-pass=${ECOMM_DB_USERPASS}   --db-user=${ECOMM_DB_USERNAME}  --user-pass=${ECOMM_DB_USERPASS}  --site-mail=${ECOMM_EMAIL}  --site-name=${ECOMM_SITE_NAME}" 2>&1 | tee ${WORKDIR}/console_install.log
+
+  echo -e "XXX\n100\nInstallation Complete!\nXXX"
+  sleep 4
+  } | whiptail --title "${SITE_TEMPLATE} Install" --gauge "Please wait while installing" 10 140 8
+
+  {
+  echo -e "XXX\n0\nSetting permissions on ${SITE_WEBROOT}/web\nXXX"
+  log_exec sudo chown -R www-data:www-data ${SITE_WEBROOT}/web
+  echo -e "XXX\n25\nSetting permissions on ${SITE_WEBROOT}/web... Done\nXXX"
+  sleep 1
+  echo -e "XXX\n25\nSetting permissions on ${SITE_WEBROOT}/web/files\nXXX"
+  log_exec sudo chmod -R 775 ${SITE_WEBROOT}/web/files
+  echo -e "XXX\n50\nSetting permissions on ${SITE_WEBROOT}/web/files... Done\nXXX"
+  sleep 1
+  echo -e "XXX\n50\nSetting permissions on ${SITE_WEBROOT}/drupal\nXXX"
+  log_exec sudo chown -R www-data:www-data ${SITE_WEBROOT}/drupal
+  echo -e "XXX\n75\nSetting permissions on ${SITE_WEBROOT}/drupal... Done\nXXX"
+  sleep 1
+  echo -e "XXX\n75\nSetting permissions on ${NGINX_ECOM_DOMAIN_P12}\nXXX"
+  log_exec sudo chown www-data:www-data ${SITE_WEBROOT}/${NGINX_ECOM_DOMAIN_P12}
+  echo -e "XXX\n100\nSetting permissions on ${NGINX_ECOM_DOMAIN_P12}... Done\nXXX"
+
+  } | whiptail --title "${SITE_TEMPLATE} - Setting permissions" --gauge "Please wait while setting permissions" 10 140 8
+
+  msgbox "$(cat ${WORKDIR}/console_install.log)"
+}
+
 setup_xtuplecommerce() {
   echo "In: ${BASH_SOURCE} ${FUNCNAME[0]}"
 
@@ -794,6 +1243,11 @@ setup_xtuplecommerce() {
     sudo mv $WORKDIR/${XTCTARDIR} /var/www/xTupleCommerce
     sudo chown -R www-data:www-data /var/www/xTupleCommerce
   fi
+}
+
+setup_xdruple_nginx() {
+  echo "Running: source ${SCRIPTS_DIR}/nginx-server.sh ${DEPLOYER_NAME} ${DOMAIN} ${DOMAIN_ALIAS} ${HTTP_AUTH_NAME} ${HTTP_AUTH_PASS} ${CONFIG_DIR}"
+  source ${SCRIPTS_DIR}/nginx-server.sh ${DEPLOYER_NAME} ${DOMAIN} ${DOMAIN_ALIAS} ${HTTP_AUTH_NAME} ${HTTP_AUTH_PASS} ${CONFIG_DIR}
 }
 
 webnotes() {
@@ -827,19 +1281,19 @@ cat << EOF > xtuplecommerce_connection.log
      xTuple Desktop Client v${MWC_VERSION}:
      Server: ${IP}
      Port: 5432
-     Database: xtupleerp
+     Database: ${ERP_DATABASE_NAME}
      User: admin
      Pass: admin
     
  
-     xTuple Mobile Web Client/REST:
+     Web Client/REST:
      Login at: http://xtuple.xd:8888
-     Login at: https://xtuple.xd:8443
+     Login at: https:/${DOMAIN_ALIAS}:8443
      User: admin
      Pass: admin
  
      Ecommerce Site Login:
-     Login at http://xtuple.xd/login
+     Login at http://${DOMAIN_ALIAS}/login
      User: Developer
      Pass: admin
 
@@ -886,4 +1340,19 @@ dont_touch() {
 
 xtau_deploy_mwc() {
   read_xtau_configs
+}
+
+install_composer() {
+  git submodule update --init --recursive
+
+  export SCRIPTS_DIR=$(pwd)/xdruple-server/scripts
+  export CONFIG_DIR=$(pwd)/xdruple-server/config
+
+  export TYPE='server'
+  export DEPLOYER_NAME=`whoami`
+  export TIMEZONE=America/New_York
+
+  sudo timedatectl set-timezone ${TIMEZONE}
+
+  source ${SCRIPTS_DIR}/php.sh ${TYPE} ${TIMEZONE} ${DEPLOYER_NAME} ${GITHUB_TOKEN} ${CONFIG_DIR}
 }

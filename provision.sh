@@ -2,9 +2,10 @@
 # Copyright (c) 1999-2017 by OpenMFG LLC, d/b/a xTuple.
 # See www.xtuple.com/CPAL for the full text of the software license.
 
-[ -n "$(typeset -F -p log)" ]                   || source ${BUILD_WORKING}/common.sh
+[ -n "$(typeset -F -p log)" ] || source ${BUILD_WORKING:-.}/common.sh
 
 provision_menu() {
+  echo "In: ${BASH_SOURCE} ${FUNCNAME[0]}"
   log "Opened provisioning menu"
 
   local ACTION
@@ -23,23 +24,9 @@ provision_menu() {
     if [ -n "$CLUSTERS" ]; then
       set_database_info_select
     else
-      log_exec provision_cluster $PGVER
+      msgbox "Return to main menu and select other option"
+      main_menu
     fi
-    log_exec create_database
-  else
-    log_exec install_postgresql $PGVER
-    
-    get_cluster_list
-
-    if [ -n "$CLUSTERS" ]; then
-      set_database_info_select
-    else
-      log_exec provision_cluster $PGVER
-    fi
-    nginx_prompt
-    configure_nginx
-    log_exec create_database
-    log_exec install_mwc_menu
   fi
   msgbox "Install Complete"
 

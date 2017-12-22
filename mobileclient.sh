@@ -5,6 +5,7 @@
 [ -n "$(typeset -F -p log)" ] || source ${BUILD_WORKING:=.}/common.sh
 
 mwc_menu() {
+  echo "In: ${BASH_SOURCE} ${FUNCNAME[0]}"
   log "Opened Web Client menu"
 
   while true; do
@@ -30,6 +31,7 @@ mwc_menu() {
 }
 
 install_mwc_menu() {
+  echo "In: ${BASH_SOURCE} ${FUNCNAME[0]}"
   if [ -z "$DATABASE" ]; then
     check_database_info
     RET=$?
@@ -87,8 +89,6 @@ install_mwc_menu() {
   elif [ -z "$MWCVERSION" ]; then
     return 127
   fi
-
-  log "Chose version $MWCVERSION"
 
   if [ -z "$MWCNAME" ] && [ "$MODE" = "manual" ]; then
     MWCNAME=$(whiptail --backtitle "$( window_title )" --inputbox "Enter a name for this xTuple instance.\nThis name will be used in several ways:\n- naming the service script in /etc/systemd/system, /etc/init, or /etc/init.d\n- naming the directory for the xTuple web-enabling source code - /opt/xtuple/$MWCVERSION/" 15 60 3>&1 1>&2 2>&3)
@@ -175,12 +175,12 @@ setup_encryption() {
 # $6 is github username
 # $7 is github password
 install_mwc() {
+  echo "In: ${BASH_SOURCE} ${FUNCNAME[0]}"
   log "Installing web client"
 
   MWCVERSION="${1:-$MWCVERSION}"
   MWCREFSPEC="${2:-$MWCREFSPEC}"
   MWCNAME="${3:-$MWCNAME}"
-
   PRIVATEEXT="${4:-$PRIVATEEXT}"
   PRIVATEEXT="${PRIVATEEXT:-false}"
   if [ ! "$PRIVATEEXT" = "true" ]; then
@@ -329,5 +329,6 @@ install_mwc() {
 }
 
 remove_mwc() {
+  echo "In: ${BASH_SOURCE} ${FUNCNAME[0]}"
   msgbox "Uninstalling the mobile client is not yet supported"
 }

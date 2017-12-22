@@ -27,11 +27,15 @@ datetime() {
 log "Logging initialized. Current session will be logged to $LOG_FILE"
 
 do_exit() {
+  echo "In: ${BASH_SOURCE} ${FUNCNAME[0]}"
+
   log "Exiting xTuple Admin Utility"
   exit 0
 }
 
 die() {
+echo "In: ${BASH_SOURCE} ${FUNCNAME[0]}"
+
   TRAPMSG="$@"
   log $@
   exit 1
@@ -45,6 +49,8 @@ ctrlc() {
 }
 
 dlf() {
+  echo "In: ${BASH_SOURCE} ${FUNCNAME[0]}"
+
   local URL=$1
   local WINDOWTITLE=$2
   local FILENAME=$3
@@ -56,6 +62,8 @@ dlf() {
 }
 
 dlf_fast() {
+  echo "In: ${BASH_SOURCE} ${FUNCNAME[0]}"
+
   local URL=$1
   local WINDOWTITLE=$2
   local FILENAME=$3
@@ -67,6 +75,8 @@ dlf_fast() {
 }
 
 dlf_fast_console() {
+  echo "In: ${BASH_SOURCE} ${FUNCNAME[0]}"
+
   local URL=$1
   local FILENAME=$2
   log "Downloading $URL to file $FILENAME using axel console output only"
@@ -86,12 +96,12 @@ latest_version() {
 }
 
 window_title() {
+  local PWSET=Set
   if [ -z "$PGHOST" ] && [ -z "$PGPORT" ] && [ -z "$PGUSER" ] && [ -z "$PGPASSWORD" ]; then
     echo "xTuple Admin Utility v$_REV -=- Current Connection Info: Not Connected"
-  elif [ ! -z "$PGHOST" ] && [ ! -z "$PGPORT" ] && [ ! -z "$PGUSER" ] && [ -z "$PGPASSWORD" ]; then
-    echo "xTuple Admin Utility v$_REV -=- Current Server $PGUSER@$PGHOST:$PGPORT -=- Password Is Not Set"
   else
-    echo "xTuple Admin Utility v$_REV -=- Current Server $PGUSER@$PGHOST:$PGPORT -=- Password Is Set"
+    [ -n "$PGPASSWORD" ] || PWSET="Not Set"
+    echo "xTuple Admin Utility v$_REV -=- Current Server $PGUSER@$PGHOST:$PGPORT -=- Password Is $PWSET"
   fi
 }
 
@@ -120,8 +130,7 @@ install_prereqs() {
     "ubuntu")
       install_pg_repo
       sudo apt-get update
-      sudo apt-get -y install axel git whiptail unzip bzip2 wget curl build-essential libssl-dev postgresql-client-$PGVER cups python-software-properties openssl libnet-ssleay-perl libauthen-pam-perl libpam-runtime libio-pty-perl perl libavahi-compat-libdnssd-dev python xvfb jq s3cmd python-magic
-      sudo apt-get -y install postgresql-common
+      sudo apt-get -y install axel git whiptail unzip bzip2 wget curl build-essential libssl-dev postgresql-client-$PGVER cups python-software-properties openssl libnet-ssleay-perl libauthen-pam-perl libpam-runtime libio-pty-perl perl libavahi-compat-libdnssd-dev python xvfb jq s3cmd python-magic dialog xsltproc postgresql-common
       RET=$?
       if [ $RET -ne 0 ]; then
         msgbox "Something went wrong installing prerequisites for $DISTRO/$CODENAME. Check the log for more info. "

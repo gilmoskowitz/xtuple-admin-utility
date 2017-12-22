@@ -2,7 +2,7 @@
 # Copyright (c) 1999-2017 by OpenMFG LLC, d/b/a xTuple.
 # See www.xtuple.com/CPAL for the full text of the software license.
 
-[ -n "$(typeset -F -p log)" ] || source ${BUILD_WORKING:=.}/common.sh
+[ -n "$(typeset -F -p log)" ] || source ${BUILD_WORKING:-.}/common.sh
 
 ssh_setup() {
   log "In: ${BASH_SOURCE} ${FUNCNAME[0]}"
@@ -15,6 +15,7 @@ StrictHostKeyChecking no"
   # This is added so composer doesn't ask for auth during the process.
   local SSHFILE="$HOME/.ssh/config"
   local MUSTCREATE=true
+  log_exec mkdir -p $(dirname $SSHFILE)
   if [[ -e "$SSHFILE" ]]; then
     log "Found SSH config"
     local file_content=$( cat "${SSHFILE}" )
@@ -34,10 +35,10 @@ StrictHostKeyChecking no"
 }
 
 get_composer_token() {
-  source  xdruple/functions/gitvars.fun
+  log "In: ${BASH_SOURCE} ${FUNCNAME[0]}"
+  source  functions/setup.fun
   loadadmin_gitconfig
 
-  log "In: ${BASH_SOURCE} ${FUNCNAME[0]}"
   if type "composer" > /dev/null; then
     AUTHKEYS+=$(composer config -g --list | grep '\[github-oauth.github.com\]' | cut -d ' ' -f2)
     COMPOSER_HOME=$(composer config -g --list | grep '\[home\]' | cut -d ' ' -f2)
@@ -48,10 +49,9 @@ get_composer_token() {
 }
 
 generate_github_token() {
-  source  xdruple/functions/gitvars.fun
-  loadadmin_gitconfig
-
   log "In: ${BASH_SOURCE} ${FUNCNAME[0]}"
+  source  functions/setup.fun
+  loadadmin_gitconfig
 
   GITHUB_TOKEN=$(git config --get github.token)
   if [[ -z ${GITHUB_TOKEN} ]]; then
@@ -74,17 +74,16 @@ generate_github_token() {
       WORKDATE=$(date "+%m%d%Y_%s")
 
       curl https://api.github.com/authorizations --user ${GITHUBNAME}:${GITHUBPASS} --data '{"scopes":["user","read:org","repo","public_repo"],"note":"Added Via xTau '${WORKDATE}'"}' -o GITHUB_TOKEN_${WORKDATE}.log
-      GITHUB_TOKEN=$(jq --raw-output '.token | select(length > 0)' GITHUB_TOKEN_${WORKDATE}.log)
+      export GITHUB_TOKEN=$(jq --raw-output '.token | select(length > 0)' GITHUB_TOKEN_${WORKDATE}.log)
       OAMSG=$(jq --raw-output '.' GITHUB_TOKEN_${WORKDATE}.log)
 
       if [[ -z "${GITHUB_TOKEN}" ]]; then
         whiptail --backtitle "$( window_title )" --msgbox "Error creating your token. ${OAMSG}" 8 60 3>&1 1>&2 2>&3
         break
       else
-        GITHUB_TOKEN=$(git config --global github.token ${GITHUB_TOKEN})
+        git config --global github.token ${GITHUB_TOKEN}
         whiptail --backtitle "$( window_title )" --msgbox "Your GitHub Personal Access token is: ${GITHUB_TOKEN}.\n\nMaintain your tokens at:\nhttps://github.com/settings/tokens\n\nToken written to ${HOME}/.gitconfig" 16 60 3>&1 1>&2 2>&3
 
-        export GITHUB_TOKEN=${GITHUB_TOKEN}
         get_composer_token
       fi
       whiptail --backtitle "$( window_title )" --msgbox "Maintain your Github Personal Access Tokens at: https://github.com/settings/tokens" 8 60 3>&1 1>&2 2>&3
@@ -94,8 +93,7 @@ generate_github_token() {
 
     log "Your GitHub Personal Access token is: ${GITHUB_TOKEN}"
 
-    GITHUB_TOKEN=$(git config --global github.token ${GITHUB_TOKEN})
-    export GITHUB_TOKEN=${GITHUB_TOKEN}
+    export GITHUB_TOKEN=$(git config --global github.token ${GITHUB_TOKEN})
     get_composer_token
 
   else

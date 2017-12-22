@@ -5,6 +5,8 @@
 ACTIONS=()
 DATE=$(date +%Y.%m.%d-%H:%M)
 
+WORKING=$(pwd)
+
 # default configurations
 LOG_FILE=$(pwd)/install-$DATE.log
 
@@ -47,18 +49,25 @@ GITHUBNAME=
 GITHUBPASS=
 
 # Variables for xdruple-server
-if [[ ! -d $(pwd)/xdruple-server ]]; then
+if [[ ! -d $(pwd)/xdruple-server/scripts ]]; then
+  THISDIR=$(pwd)
   git submodule update --init --recursive
+  cd $(pwd)/xdruple-server
+  git checkout master
+  cd ${THISDIR}
 fi
 
-if [[ -d $(pwd)/xdruple-server ]]; then
-  export SCRIPTS_DIR=$(pwd)/xdruple-server/scripts
-  export CONFIG_DIR=$(pwd)/xdruple-server/config
-fi
+export SCRIPTS_DIR=$(pwd)/xdruple-server/scripts
+export CONFIG_DIR=$(pwd)/xdruple-server/config
 
 export TYPE='server'
 export DEPLOYER_NAME=$(whoami)
-export TIMEZONE=$(</etc/timezone)
+
+#TODO: Perry - this isn't good {
+export TIMEZONE=America/New_York
+
+sudo timedatectl set-timezone ${TIMEZONE}
+# }
 
 # get rid of these
 # WORKDIR
@@ -68,3 +77,5 @@ export TIMEZONE=$(</etc/timezone)
 # DEMODEST
 # DEST
 # SOURCE
+
+mkdir -p ~/.composer

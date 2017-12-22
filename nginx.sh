@@ -2,9 +2,10 @@
 # Copyright (c) 1999-2017 by OpenMFG LLC, d/b/a xTuple.
 # See www.xtuple.com/CPAL for the full text of the software license.
 
-[ -n "$(typeset -F -p log)" ]                   || source ${BUILD_WORKING}/common.sh
+[ -n "$(typeset -F -p log)" ] || source ${BUILD_WORKING:-.}/common.sh
 
 nginx_menu() {
+  echo "In: ${BASH_SOURCE} ${FUNCNAME[0]}"
   log "Opened nginx menu"
 
   while true; do
@@ -32,6 +33,7 @@ nginx_menu() {
 }
 
 install_nginx() {
+  echo "In: ${BASH_SOURCE} ${FUNCNAME[0]}"
   log "Installing nginx"
 
   log_exec sudo apt-get -y install nginx
@@ -46,7 +48,7 @@ install_nginx() {
 # Run this before configure_nginx if interactive
 # Set all variables if headless/automatic
 nginx_prompt() {
-  type nginx >/dev/null 2>&1 || { echo >&2 "nginx not installed, installing"; install_nginx; }
+  echo "In: ${BASH_SOURCE} ${FUNCNAME[0]}"
 
   if [ "$MODE" = "auto" ]; then
       return 127
@@ -107,6 +109,7 @@ nginx_prompt() {
 #   NGINX_KEY       - website key with the same requirements
 #   NGINX_PORT      - nginx port to listen to
 configure_nginx() {
+  echo "In: ${BASH_SOURCE} ${FUNCNAME[0]}"
   log "Configuring nginx"
 
   log "Removing nginx site default"
@@ -155,6 +158,7 @@ configure_nginx() {
 }
 
 remove_nginx() {
+  echo "In: ${BASH_SOURCE} ${FUNCNAME[0]}"
   if (whiptail --title "Are you sure?" --yesno "Uninstall nginx?" --yes-button "Yes" --no-button "No" 10 60) then
     log "Uninstalling nginx..."
     log_exec sudo apt-get -y remove nginx

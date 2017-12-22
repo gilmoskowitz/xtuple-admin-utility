@@ -9,8 +9,8 @@ WantedBy=multi-user.target
 Restart=always
 StandardOutput=syslog
 StandardError=syslog
-User=xtuple
-Group=xtuple
+#User=${DEPLOYER_NAME}
+#Group=${DEPLOYER_NAME}
 Environment=NODE_ENV=production
 ExecStop=/bin/kill -9 $MAINPID
 #SyslogIdentifier=xtuple-$MWCNAME

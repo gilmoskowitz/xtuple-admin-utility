@@ -338,7 +338,7 @@ composerRun() {
   echo "In: ${BASH_SOURCE} ${FUNCNAME[0]}"
 
   sudo su - ${DEPLOYER_NAME} -c "composer config --global process-timeout 600"
-  sudo su - ${DEPLOYER_NAME} -c "composer config --global preferred-install dist"
+  sudo su - ${DEPLOYER_NAME} -c "composer config --global preferred-install source"
   sudo su - ${DEPLOYER_NAME} -c "composer config --global secure-http false"
   sudo su - ${DEPLOYER_NAME} -c "composer config --global github-protocols https git ssh"
 
